@@ -19,12 +19,9 @@ class Checkout extends StatefulWidget {
 
 class _CheckoutState extends State<Checkout> {
   late List<bool> _selectedItems;
-
-  // Use XFile instead of File for cross-platform compatibility
   XFile? _pickedFile;
-
-  // For web platform, store image as bytes
   Uint8List? _webImage;
+  final TextEditingController _addressController = TextEditingController();
 
   static const Color primaryGreen = Color(0xFF4CAF50);
 
@@ -48,8 +45,6 @@ class _CheckoutState extends State<Checkout> {
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-
-    // Show dialog to choose source
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -68,10 +63,7 @@ class _CheckoutState extends State<Checkout> {
                   ),
                   onTap: () async {
                     Navigator.of(context).pop();
-                    final pickedFile = await picker.pickImage(
-                        source: ImageSource.gallery,
-                        imageQuality: 75
-                    );
+                    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 75);
                     _processPickedFile(pickedFile);
                   },
                 ),
@@ -86,10 +78,7 @@ class _CheckoutState extends State<Checkout> {
                   ),
                   onTap: () async {
                     Navigator.of(context).pop();
-                    final pickedFile = await picker.pickImage(
-                        source: ImageSource.camera,
-                        imageQuality: 75
-                    );
+                    final pickedFile = await picker.pickImage(source: ImageSource.camera, imageQuality: 75);
                     _processPickedFile(pickedFile);
                   },
                 ),
@@ -105,8 +94,6 @@ class _CheckoutState extends State<Checkout> {
     if (pickedFile != null) {
       setState(() {
         _pickedFile = pickedFile;
-
-        // For web, we need to read the bytes
         if (kIsWeb) {
           pickedFile.readAsBytes().then((value) {
             setState(() {
@@ -122,17 +109,11 @@ class _CheckoutState extends State<Checkout> {
     if (_pickedFile == null) {
       return const SizedBox.shrink();
     }
-
     if (kIsWeb) {
-      // Display image from bytes on web
       if (_webImage != null) {
         return Padding(
           padding: const EdgeInsets.all(8),
-          child: Image.memory(
-            _webImage!,
-            height: 150,
-            fit: BoxFit.cover,
-          ),
+          child: Image.memory(_webImage!, height: 150, fit: BoxFit.cover),
         );
       } else {
         return const Padding(
@@ -141,14 +122,9 @@ class _CheckoutState extends State<Checkout> {
         );
       }
     } else {
-      // Display image from file on mobile
       return Padding(
         padding: const EdgeInsets.all(8),
-        child: Image.file(
-          File(_pickedFile!.path),
-          height: 150,
-          fit: BoxFit.cover,
-        ),
+        child: Image.file(File(_pickedFile!.path), height: 150, fit: BoxFit.cover),
       );
     }
   }
@@ -163,114 +139,134 @@ class _CheckoutState extends State<Checkout> {
       body: widget.cartItems.isEmpty
           ? const Center(child: Text("Keranjang kamu kosong"))
           : Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              itemCount: widget.cartItems.length,
-              itemBuilder: (context, index) {
-                final item = widget.cartItems[index];
-                return CheckboxListTile(
-                  activeColor: primaryGreen,
-                  checkColor: Colors.white,
-                  value: _selectedItems[index],
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedItems[index] = value ?? false;
-                    });
-                  },
-                  title: Text(item['name']),
-                  subtitle: Row(
+              children: [
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: widget.cartItems.length,
+                    itemBuilder: (context, index) {
+                      final item = widget.cartItems[index];
+                      return CheckboxListTile(
+                        activeColor: primaryGreen,
+                        checkColor: Colors.white,
+                        value: _selectedItems[index],
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedItems[index] = value ?? false;
+                          });
+                        },
+                        title: Text(item['name']),
+                        subtitle: Row(
+                          children: [
+                            Text("Rp ${item['price'].toStringAsFixed(0)}"),
+                            const SizedBox(width: 8),
+                            Text("Jumlah: ${item['quantity'] ?? 1}"),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const Divider(),
+
+                // Tambahan Input Alamat
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("Rp ${item['price'].toStringAsFixed(0)}"),
-                      const SizedBox(width: 8),
-                      Text("Jumlah: ${item['quantity'] ?? 1}"),
+                      const Text(
+                        "Alamat Pengiriman",
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _addressController,
+                        maxLines: 2,
+                        decoration: InputDecoration(
+                          hintText: "Tulis alamat lengkap Anda...",
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
-                );
-              },
-            ),
-          ),
-          const Divider(),
-          _buildImagePreview(),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  "Metode Pembayaran",
-                  style: TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 4),
-                const Text("Silakan transfer ke rekening berikut:"),
-                const SizedBox(height: 4),
-                Card(
-                  color: primaryGreen.withOpacity(0.2),
-                  child: const Padding(
-                    padding: EdgeInsets.all(8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text("Bank BCA",
-                            style:
-                            TextStyle(fontWeight: FontWeight.bold)),
-                        Text("No. Rek: 1234567890"),
-                        Text("a.n. PT. Petcare Indonesia"),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  "Total: Rp ${totalPrice.toStringAsFixed(0)}",
-                  style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 12),
-                ElevatedButton.icon(
-                  onPressed: _pickImage,
-                  icon: const Icon(Icons.upload),
-                  label:
-                  const Text("Unggah Bukti Transfer (Screenshot)"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryGreen,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                ElevatedButton(
-                  onPressed: () {
-                    if (totalPrice == 0) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content:
-                            Text("Pilih item terlebih dahulu")),
-                      );
-                      return;
-                    }
 
-                    if (_pickedFile == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text(
-                                "Mohon unggah bukti pembayaran (SS)")),
-                      );
-                      return;
-                    }
+                _buildImagePreview(),
 
-                    // Aksi setelah konfirmasi pembayaran berhasil
-                    widget.onConfirm();
-                  },
-                  child: const Text("Konfirmasi Pembayaran"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryGreen,
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text(
+                        "Metode Pembayaran",
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text("Silakan transfer ke rekening berikut:"),
+                      const SizedBox(height: 4),
+                      Card(
+                        color: primaryGreen.withOpacity(0.2),
+                        child: const Padding(
+                          padding: EdgeInsets.all(8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text("Bank BCA", style: TextStyle(fontWeight: FontWeight.bold)),
+                              Text("No. Rek: 1234567890"),
+                              Text("a.n. PT. Petcare Indonesia"),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        "Total: Rp ${totalPrice.toStringAsFixed(0)}",
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton.icon(
+                        onPressed: _pickImage,
+                        icon: const Icon(Icons.upload),
+                        label: const Text("Unggah Bukti Transfer (Screenshot)"),
+                        style: ElevatedButton.styleFrom(backgroundColor: primaryGreen),
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton(
+                        onPressed: () {
+                          if (totalPrice == 0) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("Pilih item terlebih dahulu")),
+                            );
+                            return;
+                          }
+
+                          if (_pickedFile == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("Mohon unggah bukti pembayaran (SS)")),
+                            );
+                            return;
+                          }
+
+                          if (_addressController.text.trim().isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("Mohon isi alamat pengiriman")),
+                            );
+                            return;
+                          }
+
+                          widget.onConfirm();
+                        },
+                        child: const Text("Konfirmasi Pembayaran"),
+                        style: ElevatedButton.styleFrom(backgroundColor: primaryGreen),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-          ),
-        ],
-      ),
     );
   }
 }
