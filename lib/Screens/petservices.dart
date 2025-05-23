@@ -64,62 +64,83 @@ class PetServicesScreen extends StatelessWidget {
           Expanded(
             child: SingleChildScrollView(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Main services grid
-                  GridView.count(
-                    physics: const NeverScrollableScrollPhysics(),
-                    shrinkWrap: true,
-                    crossAxisCount: 2,
-                    padding: const EdgeInsets.all(16),
-                    mainAxisSpacing: 16,
-                    crossAxisSpacing: 16,
-                    children: [
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const Grooming()),
-                          );
-                        },
-                        child: const ServiceCard(
-                          icon: Icons.pets,
-                          title: 'Grooming',
-                          iconText: '✂️',
-                        ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+                    child: Text(
+                      'Our Services',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
                       ),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const Boarding()),
-                          );
-                        },
-                        child: const ServiceCard(
-                          icon: Icons.home,
-                          title: 'Boarding',
-                          iconText: '🏠',
-                        ),
-                      ),
-
-                      const ServiceCard(
-                        icon: Icons.airport_shuttle,
-                        title: 'Transportation',
-                        iconText: '🐾',
-                      ),
-                      const ServiceCard(
-                        icon: Icons.sports,
-                        title: 'Training',
-                        iconText: '🦮',
-                      ),
-                    ],
+                    ),
                   ),
-                  
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
+                      children: [
+                        Card(
+                          elevation: 3,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const Grooming()),
+                              );
+                            },
+                            child: const Padding(
+                              padding: EdgeInsets.all(12.0),
+                              child: ServiceCard(
+                                icon: Icons.pets,
+                                title: 'Grooming',
+                                iconText: '✂️',
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Card(
+                          elevation: 3,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const Boarding()),
+                              );
+                            },
+                            child: const Padding(
+                              padding: EdgeInsets.all(12.0),
+                              child: ServiceCard(
+                                icon: Icons.home,
+                                title: 'Boarding',
+                                iconText: '🏠',
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
                   // Other helpful links section
                   Container(
+                    width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     margin: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.grey[100],
+                      gradient: LinearGradient(
+                        colors: [Colors.green.shade50, Colors.white],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
@@ -152,7 +173,8 @@ class PetServicesScreen extends StatelessWidget {
               ),
             ),
           ),
-          // Bottom Navigation Bar
+
+          // Bottom Navigation Bar (Kosong tapi dengan bayangan)
           Container(
             padding: const EdgeInsets.symmetric(vertical: 12),
             decoration: BoxDecoration(
@@ -187,16 +209,17 @@ class ServiceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFFFFFAE6),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Row(
         children: [
           Container(
-            width: 70,
-            height: 70,
+            width: 60,
+            height: 60,
             decoration: BoxDecoration(
               color: Colors.green.withOpacity(0.2),
               shape: BoxShape.circle,
@@ -208,12 +231,13 @@ class ServiceCard extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(width: 16),
           Text(
             title,
             style: const TextStyle(
-              fontSize: 16,
+              fontSize: 18,
               fontWeight: FontWeight.bold,
+              color: Colors.black87,
             ),
           ),
         ],

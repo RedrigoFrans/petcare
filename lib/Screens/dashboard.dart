@@ -132,9 +132,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: const Text("Go to Ask Fido", style: TextStyle(fontSize: 16)),
               ),
               const SizedBox(height: 20),
-              _buildSectionTitle("Shop For"),
-              _buildShopCategories(),
-              const SizedBox(height: 20),
               _buildSectionTitle("Pet Services"),
               _buildServiceCategories(context),
               const SizedBox(height: 20),
@@ -210,26 +207,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return Text(
       title,
       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-    );
-  }
-
-  Widget _buildShopCategories() {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: const [
-            ShopCategory(icon: Icons.pets, label: "All"),
-            ShopCategory(icon: Icons.pets, label: "Dog"),
-            ShopCategory(icon: Icons.pets, label: "Cat"),
-            ShopCategory(icon: Icons.pets, label: "Bird"),
-            ShopCategory(icon: Icons.pets, label: "Horse"),
-          ],
-        ),
-      ),
     );
   }
 
