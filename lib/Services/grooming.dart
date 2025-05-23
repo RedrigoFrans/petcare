@@ -65,7 +65,7 @@ class _GroomingScreenState extends State<Grooming> {
             children: [
               Icon(Icons.check_circle, color: Colors.white),
               SizedBox(width: 8),
-              Text('Layanan Grooming dikonfirmasi'),
+              Text('Layanan Grooming diterima menunggu konfirmasi admin'),
             ],
           ),
           backgroundColor: Colors.green,
