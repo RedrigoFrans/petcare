@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 class Register extends StatefulWidget {
   const Register({Key? key}) : super(key: key);
@@ -9,8 +11,19 @@ class Register extends StatefulWidget {
 
 class _RegisterState extends State<Register> {
   final _formKey = GlobalKey<FormState>();
+
+  // Controller untuk input form
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _addressController = TextEditingController(); // ✅ Tambah controller address
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
+
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isLoading = false; // ✅ Tambah loading state
 
   InputDecoration buildInputDecoration(String label, IconData icon) {
     return InputDecoration(
@@ -28,6 +41,111 @@ class _RegisterState extends State<Register> {
     );
   }
 
+  Future<void> registerUser() async {
+    // ✅ Ganti dengan URL Laravel API yang sebenarnya
+    // Sesuaikan dengan IP/domain server Laravel Anda
+    final url = Uri.parse('http://127.0.0.1:8000/api/register'); // atau http://localhost:8000/api/register
+    
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      print('Sending request to: $url'); // Debug log
+      
+      // ✅ Kirim data dalam format JSON dengan header yang benar
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'name': _nameController.text.trim(),
+          'username': _usernameController.text.trim(), // Backend mungkin tidak memerlukan username
+          'email': _emailController.text.trim(),
+          'phone': _phoneController.text.trim(),
+          'address': _addressController.text.trim(), // ✅ Tambah address yang diperlukan backend
+          'password': _passwordController.text.trim(),
+          'password_confirmation': _confirmPasswordController.text.trim(), // ✅ Tambah konfirmasi password
+        }),
+      );
+
+      print('Response status: ${response.statusCode}'); // Debug log
+      print('Response body: ${response.body}'); // Debug log
+
+      if (response.statusCode == 201) { // ✅ Backend return 201 untuk created
+        // Registrasi sukses
+        final responseData = jsonDecode(response.body);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(responseData['message'] ?? 'Registrasi berhasil, silakan login'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context);
+        }
+      } else {
+        // Error dari backend
+        final error = jsonDecode(response.body);
+        if (mounted) {
+          String errorMessage = 'Gagal registrasi';
+          
+          // Handle validation errors
+          if (error['errors'] != null) {
+            Map<String, dynamic> errors = error['errors'];
+            List<String> errorMessages = [];
+            errors.forEach((key, value) {
+              if (value is List) {
+                errorMessages.addAll(value.cast<String>());
+              }
+            });
+            errorMessage = errorMessages.join('\n');
+          } else if (error['message'] != null) {
+            errorMessage = error['message'];
+          }
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMessage),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error: $e'); // Debug log
+      // Error koneksi atau lain-lain
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Terjadi kesalahan koneksi: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _usernameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _addressController.dispose(); // ✅ Dispose address controller
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -42,45 +160,97 @@ class _RegisterState extends State<Register> {
                 child: Column(
                   children: [
                     // Logo dan Judul
-                    Column(
-                      children: [
-                        Image.asset(
-                          'assets/images/logo.png', // Ganti sesuai dengan path logo kamu
-                          height: 170,
-                        ),
-                        const SizedBox(height: 10),
-                      ],
+                    // ✅ Gunakan placeholder jika tidak ada logo
+                    Container(
+                      height: 170,
+                      child: Icon(
+                        Icons.pets,
+                        size: 100,
+                        color: Colors.blue[600],
+                      ),
+                    ),
+                    Text(
+                      'Pet Care',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue[600],
+                      ),
                     ),
                     const SizedBox(height: 30),
 
                     // Nama Lengkap
                     TextFormField(
+                      controller: _nameController,
                       decoration: buildInputDecoration('Nama Lengkap', Icons.person),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Nama lengkap wajib diisi';
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 16),
 
-                    // Username
+                    // Username - ✅ Opsional karena backend tidak memerlukan
                     TextFormField(
+                      controller: _usernameController,
                       decoration: buildInputDecoration('Username', Icons.account_circle),
+                      validator: (value) {
+                        // Username opsional
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 16),
 
                     // Email
                     TextFormField(
+                      controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
                       decoration: buildInputDecoration('Email Address', Icons.email),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Email wajib diisi';
+                        }
+                        if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+                          return 'Format email tidak valid';
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 16),
 
                     // Nomor HP
                     TextFormField(
+                      controller: _phoneController,
                       keyboardType: TextInputType.phone,
                       decoration: buildInputDecoration('Nomor HP', Icons.phone),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Nomor HP wajib diisi';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // ✅ Tambah field Address yang diperlukan backend
+                    TextFormField(
+                      controller: _addressController,
+                      decoration: buildInputDecoration('Alamat', Icons.location_on),
+                      maxLines: 2,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Alamat wajib diisi';
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 16),
 
                     // Password
                     TextFormField(
+                      controller: _passwordController,
                       obscureText: _obscurePassword,
                       decoration: buildInputDecoration('Password', Icons.lock).copyWith(
                         suffixIcon: IconButton(
@@ -95,11 +265,21 @@ class _RegisterState extends State<Register> {
                           },
                         ),
                       ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Password wajib diisi';
+                        }
+                        if (value.length < 6) {
+                          return 'Password minimal 6 karakter';
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 16),
 
                     // Confirm Password
                     TextFormField(
+                      controller: _confirmPasswordController,
                       obscureText: _obscureConfirmPassword,
                       decoration: buildInputDecoration('Confirm Password', Icons.lock_outline).copyWith(
                         suffixIcon: IconButton(
@@ -114,6 +294,12 @@ class _RegisterState extends State<Register> {
                           },
                         ),
                       ),
+                      validator: (value) {
+                        if (value != _passwordController.text) {
+                          return 'Password tidak cocok';
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 24),
 
@@ -128,17 +314,21 @@ class _RegisterState extends State<Register> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        onPressed: () {
-                          Navigator.pop(context); // Kembali ke halaman login
+                        onPressed: _isLoading ? null : () { // ✅ Disable saat loading
+                          if (_formKey.currentState!.validate()) {
+                            registerUser();
+                          }
                         },
-                        child: const Text(
-                          'REGISTER',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        child: _isLoading 
+                          ? const CircularProgressIndicator(color: Colors.white) // ✅ Show loading
+                          : const Text(
+                              'REGISTER',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                       ),
                     ),
                     const SizedBox(height: 30),

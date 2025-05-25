@@ -1,10 +1,11 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'petservices.dart';
 import 'profile.dart';
-import 'shop.dart';
+import '../Shop/shop.dart';
 import 'package:petcare1/Services/grooming.dart';
+import 'package:petcare1/Services/boarding.dart';
+import 'package:petcare1/Pets/add_pet.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -22,9 +23,7 @@ class _DashboardState extends State<Dashboard> {
   void initState() {
     super.initState();
     _pages = [
-      HomeScreen(
-        onAskFidoTap: () => setState(() => _currentIndex = 3),
-      ),
+      const HomeScreen(),
       const Shop(),
       const PetServices(),
     ];
@@ -44,7 +43,6 @@ class _DashboardState extends State<Dashboard> {
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
           BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: "Shop"),
           BottomNavigationBarItem(icon: Icon(Icons.design_services), label: "Services"),
-          BottomNavigationBarItem(icon: Icon(Icons.pets), label: "Ask Fido"),
         ],
       ),
     );
@@ -52,12 +50,7 @@ class _DashboardState extends State<Dashboard> {
 }
 
 class HomeScreen extends StatefulWidget {
-  final VoidCallback onAskFidoTap;
-
-  const HomeScreen({
-    super.key,
-    required this.onAskFidoTap,
-  });
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -121,17 +114,6 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 20),
               _buildSliderBanner(),
               const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: widget.onAskFidoTap,
-                style: ElevatedButton.styleFrom(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-                ),
-                child: const Text("Go to Ask Fido", style: TextStyle(fontSize: 16)),
-              ),
-              const SizedBox(height: 20),
               _buildSectionTitle("Pet Services"),
               _buildServiceCategories(context),
               const SizedBox(height: 20),
@@ -154,31 +136,23 @@ class _HomeScreenState extends State<HomeScreen> {
         Row(
           children: [
             const SizedBox(width: 12),
-            Stack(
-              children: [
-                const Icon(Icons.notifications_none, size: 28, color: Colors.green),
-                Positioned(
-                  right: 0,
-                  child: CircleAvatar(
-                    radius: 6,
-                    backgroundColor: Colors.orange,
-                    child: const Text('1', style: TextStyle(fontSize: 8, color: Colors.white)),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(width: 12),
+
             GestureDetector(
               onTap: () {
                 Navigator.push(context, MaterialPageRoute(builder: (context) => Profile()));
               },
-              child: const CircleAvatar(child: Text("UU")),
+              child: CircleAvatar(
+                radius: 20,
+                backgroundColor: Colors.green.shade400,
+                child: Icon(Icons.person, color: Colors.white, size: 24),
+              ),
             ),
           ],
         ),
       ],
     );
   }
+
 
   Widget _buildSliderBanner() {
     return SizedBox(
@@ -228,9 +202,15 @@ class _HomeScreenState extends State<HomeScreen> {
               },
               child: const ServiceCategory(icon: Icons.content_cut, label: "Grooming"),
             ),
-            const ServiceCategory(icon: Icons.home, label: "Boarding"),
-            const ServiceCategory(icon: Icons.airplanemode_active, label: "Transportation"),
-            const ServiceCategory(icon: Icons.school, label: "Training"),
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const Boarding()),
+                );
+              },
+              child: const ServiceCategory(icon: Icons.home, label: "Boarding"),
+            ),
           ],
         ),
       ),
@@ -260,8 +240,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
-                Expanded(
+              children: [
+                const Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -271,9 +251,21 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                 ),
-                CircleAvatar(
-                  backgroundColor: Colors.green,
-                  child: Icon(Icons.add, color: Colors.white),
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(20),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => AddPetPage()),
+                      );
+                    },
+                    child: const CircleAvatar(
+                      backgroundColor: Colors.green,
+                      child: Icon(Icons.add, color: Colors.white),
+                    ),
+                  ),
                 ),
               ],
             ),

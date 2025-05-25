@@ -125,14 +125,8 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
     final pickedFile = await ImagePicker().pickImage(source: source);
 
     if (pickedFile != null) {
-      final directory = await getApplicationDocumentsDirectory();
-      final name = path.basename(pickedFile.path);
-      final savedImage = await File(
-        pickedFile.path,
-      ).copy('${directory.path}/$name');
-
       setState(() {
-        _imageFile = savedImage;
+        _imageFile = File(pickedFile.path);
       });
     }
   }
@@ -331,13 +325,9 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                               ),
                               child: CircleAvatar(
                                 radius: 60,
-                                backgroundImage:
-                                _imageFile != null
-                                    ? FileImage(_imageFile!)
-                                    : null,
                                 backgroundColor: Colors.grey[300],
-                                child:
-                                _imageFile == null
+                                backgroundImage: _imageFile != null ? FileImage(_imageFile!) : null,
+                                child: _imageFile == null
                                     ? Text(
                                   fullName
                                       .split(' ')
@@ -414,20 +404,6 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                     ),
                   ),
 
-                  // Stats Section
-                  Container(
-                    margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                    child: Row(
-                      children: [
-                        _buildStatsCard('Posts', postsCount.toString()),
-                        const SizedBox(width: 12),
-                        _buildStatsCard('Followers', followersCount.toString()),
-                        const SizedBox(width: 12),
-                        _buildStatsCard('Following', followingCount.toString()),
-                      ],
-                    ),
-                  ),
-
                   // Action Buttons
                   Container(
                     margin: const EdgeInsets.symmetric(
@@ -488,7 +464,6 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                     Icons.location_on,
                     iconColor: Colors.orange,
                   ),
-
                   const SizedBox(height: 30),
                 ],
               ),

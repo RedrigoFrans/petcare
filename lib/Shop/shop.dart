@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:petcare1/ShopItem/item1.dart';
-import 'package:petcare1/ShopItem/item2.dart';
-import 'package:petcare1/ShopItem/item3.dart';
-import 'package:petcare1/ShopItem/item4.dart';
-import 'keranjang.dart';
+import 'item_detail.dart';
+import 'package:petcare1/Screens/keranjang.dart';
 
 class Shop extends StatefulWidget {
   const Shop({super.key});
@@ -38,6 +35,13 @@ class _ShopState extends State<Shop> {
     },
   ];
 
+  final List<String> descriptions = [
+    'Makanan kering untuk kucing dewasa dengan rasa tuna, mengandung nutrisi lengkap dan seimbang.',
+    'Kalung lucu dan nyaman untuk kucing peliharaan Anda. Tersedia dalam berbagai warna menarik.',
+    'Makanan basah khusus untuk mengurangi pembentukan hairball pada kucing berbulu panjang.',
+    'Nutrisi sempurna untuk anak kucing usia dini agar tumbuh sehat dan kuat.',
+  ];
+
   void addToCart(Map<String, String> product) {
     setState(() {
       cartItems.add(product);
@@ -49,64 +53,23 @@ class _ShopState extends State<Shop> {
 
   void openProductDetail(int index) {
     final product = products[index];
-    Widget page;
-
-    switch (index) {
-      case 0:
-        page = Item1(
-          name: product['name']!,
-          price: product['price']!,
-          image: product['image']!,
-          onAddToCart: (Map<String, dynamic> p) => addToCart(Map<String, String>.from({
-            'name': p['name'] as String,
-            'price': p['price'].toString(),
-            'image': p['image'] as String,
-          })),
-        );
-        break;
-      case 1:
-        page = Item2(
-          name: product['name']!,
-          price: product['price']!,
-          image: product['image']!,
-          onAddToCart: (Map<String, dynamic> p) => addToCart(Map<String, String>.from({
-            'name': p['name'] as String,
-            'price': p['price'].toString(),
-            'image': p['image'] as String,
-          })),
-        );
-        break;
-      case 2:
-        page = Item3(
-          name: product['name']!,
-          price: product['price']!,
-          image: product['image']!,
-          onAddToCart: (Map<String, dynamic> p) => addToCart(Map<String, String>.from({
-            'name': p['name'] as String,
-            'price': p['price'].toString(),
-            'image': p['image'] as String,
-          })),
-        );
-        break;
-      case 3:
-        page = Item4(
-          name: product['name']!,
-          price: product['price']!,
-          image: product['image']!,
-          onAddToCart: (Map<String, dynamic> p) => addToCart(Map<String, String>.from({
-            'name': p['name'] as String,
-            'price': p['price'].toString(),
-            'image': p['image'] as String,
-          })),
-        );
-        break;
-      default:
-        return;
-    }
+    final description = descriptions[index];
 
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => page),
+      MaterialPageRoute(
+        builder: (_) => ItemDetail(
+          name: product['name']!,
+          price: product['price']!,
+          image: product['image']!,
+          description: description,
+          onAddToCart: (Map<String, dynamic> p) => addToCart({
+            'name': p['name'] as String,
+            'price': p['price'].toString(),
+            'image': p['image'] as String,
+          }),
+        ),
+      ),
     );
   }
 
