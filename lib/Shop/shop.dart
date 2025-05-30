@@ -20,9 +20,9 @@ class _ShopState extends State<Shop> {
 
   final ApiService _apiService = ApiService();
 
-  // Configuration - change this to match your server
-  static const String baseUrl = 'http://192.168.1.132:8000'; // Change to your actual IP/domain
-  static const bool debugMode = true; // Set to false in production
+  // PERBAIKAN: Ganti localhost dengan IP address yang benar
+  static const String baseUrl = 'http://127.0.0.1:8000'; // Sesuaikan dengan IP server Anda
+  static const bool debugMode = true;
 
   @override
   void initState() {
@@ -42,6 +42,7 @@ class _ShopState extends State<Shop> {
       if (!mounted) return;
 
       if (debugMode) {
+        print('Raw API Response: $fetchedProducts');
         print('Fetched products count: ${fetchedProducts.length}');
       }
 
@@ -56,11 +57,11 @@ class _ShopState extends State<Shop> {
             priceNumeric = 0.0;
           }
 
-          final imageUrl = _parseImageUrl(p['image_url'] ?? p['image']);
+          final imageUrl = _parseImageUrl(p['image_url']);
           
           if (debugMode) {
             print('Product: ${p['name']}');
-            print('Original image: ${p['image_url'] ?? p['image']}');
+            print('Original image: ${p['image_url']}');
             print('Parsed image URL: $imageUrl');
             print('---');
           }
@@ -89,59 +90,130 @@ class _ShopState extends State<Shop> {
     }
   }
 
-  String _parseImageUrl(dynamic imageUrl) {
-    if (imageUrl == null) {
-      if (debugMode) print('Image URL is null, using placeholder');
-      return 'assets/images/placeholder.jpg';
+// Method _parseImageUrl yang diperbaiki
+String _parseImageUrl(dynamic imageUrl) {
+  if (debugMode) {
+    print('Parsing image URL: $imageUrl (Type: ${imageUrl.runtimeType})');
+  }
+  
+  // Jika null atau empty, return placeholder
+  if (imageUrl == null || imageUrl.toString().trim().isEmpty) {
+    if (debugMode) print('Image URL is null/empty, using placeholder');
+    return 'assets/images/placeholder.jpg';
+  }
+  
+  final url = imageUrl.toString().trim();
+  
+  // PERBAIKAN: Extract filename untuk menggunakan API endpoint
+  String filename = '';
+  
+  if (url.contains('/storage/')) {
+    // Extract filename dari URL storage
+    final parts = url.split('/storage/');
+    if (parts.length > 1) {
+      filename = parts.last;
+      // Remove 'products/' prefix if exists
+      if (filename.startsWith('products/')) {
+        filename = filename.substring(9);
+      }
     }
-    
-    final url = imageUrl.toString().trim();
-    
+  } else if (url.contains('/')) {
+    // Extract filename dari path
+    filename = url.split('/').last;
+  } else {
+    filename = url;
+  }
+  
+  if (filename.isNotEmpty) {
+    // PERBAIKAN: Gunakan API endpoint untuk serve image
+    final apiImageUrl = '$baseUrl/api/images/$filename';
     if (debugMode) {
-      print('Parsing image URL: $url');
+      print('Using API image URL: $apiImageUrl');
     }
-    
-    // If empty string, use placeholder
-    if (url.isEmpty) {
-      return 'assets/images/placeholder.jpg';
-    }
-    
-    // If already a full URL, return directly
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      if (debugMode) print('URL is already complete: $url');
-      return url;
-    }
-    
-    // If it's a local asset
-    if (url.startsWith('assets/')) {
-      if (debugMode) print('URL is local asset: $url');
-      return url;
-    }
-    
-    // Clean the URL path
-    String cleanUrl = url;
-    
-    // Remove leading slash if present
-    if (cleanUrl.startsWith('/')) {
-      cleanUrl = cleanUrl.substring(1);
-    }
-    
-    // Handle different Laravel storage URL patterns
-    String finalUrl;
-    
-    if (cleanUrl.startsWith('storage/')) {
-      // URL already includes storage path
-      finalUrl = '$baseUrl/$cleanUrl';
-    } else {
-      // Add storage prefix
-      finalUrl = '$baseUrl/storage/$cleanUrl';
-    }
-    
-    if (debugMode) {
-      print('Final constructed URL: $finalUrl');
-    }
-    
-    return finalUrl;
+    return apiImageUrl;
+  }
+  
+  // Fallback ke placeholder jika tidak bisa extract filename
+  if (debugMode) print('Could not extract filename, using placeholder');
+  return 'assets/images/placeholder.jpg';
+}
+
+// PERBAIKAN: Image widget dengan error handling yang lebih baik
+Widget _buildImageWidget(String imageUrl, {double? height}) {
+  if (debugMode) {
+    print('Building image widget for: $imageUrl');
+  }
+
+  if (imageUrl.startsWith('assets/')) {
+    return Image.asset(
+      imageUrl,
+      fit: BoxFit.cover,
+      height: height,
+      errorBuilder: (context, error, stackTrace) {
+        if (debugMode) print('Error loading asset: $imageUrl - $error');
+        return _buildErrorWidget();
+      },
+    );
+  } else {
+    return CachedNetworkImage(
+      imageUrl: imageUrl,
+      fit: BoxFit.cover,
+      height: height,
+      placeholder: (context, url) => Container(
+        color: Colors.grey[100],
+        child: Center(
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            valueColor: AlwaysStoppedAnimation<Color>(
+              Colors.orange.shade300,
+            ),
+          ),
+        ),
+      ),
+      errorWidget: (context, url, error) {
+        if (debugMode) {
+          print('Error loading network image: $url');
+          print('Error details: $error');
+          print('Error type: ${error.runtimeType}');
+        }
+        return _buildErrorWidget();
+      },
+      httpHeaders: const {
+        'User-Agent': 'Flutter App',
+        'Accept': 'image/webp,image/apng,image/jpeg,image/png,image/*,*/*;q=0.8',
+        'Cache-Control': 'no-cache',
+      },
+      fadeInDuration: const Duration(milliseconds: 300),
+      memCacheWidth: 400,
+      memCacheHeight: 400,
+      maxWidthDiskCache: 600,
+      maxHeightDiskCache: 600,
+    );
+  }
+}
+
+  Widget _buildErrorWidget() {
+    return Container(
+      color: Colors.grey[200],
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.image_not_supported,
+            color: Colors.grey[400],
+            size: 32,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'No Image',
+            style: TextStyle(
+              color: Colors.grey[500],
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void addToCart(Map<String, dynamic> product) {
@@ -205,71 +277,6 @@ class _ShopState extends State<Shop> {
       return product['name'].toString().toLowerCase().contains(query) ||
              product['description'].toString().toLowerCase().contains(query);
     }).toList();
-  }
-
-  Widget _buildImageWidget(String imageUrl, {double? height}) {
-    if (imageUrl.startsWith('assets/')) {
-      return Image.asset(
-        imageUrl,
-        fit: BoxFit.cover,
-        height: height,
-        errorBuilder: (context, error, stackTrace) {
-          if (debugMode) print('Error loading asset: $imageUrl - $error');
-          return _buildErrorWidget();
-        },
-      );
-    } else {
-      return CachedNetworkImage(
-        imageUrl: imageUrl,
-        fit: BoxFit.cover,
-        height: height,
-        placeholder: (context, url) => Container(
-          color: Colors.grey[100],
-          child: Center(
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                Colors.orange.shade300,
-              ),
-            ),
-          ),
-        ),
-        errorWidget: (context, url, error) {
-          if (debugMode) {
-            print('Error loading network image: $url');
-            print('Error details: $error');
-          }
-          return _buildErrorWidget();
-        },
-        httpHeaders: const {
-          'User-Agent': 'Flutter App',
-        },
-      );
-    }
-  }
-
-  Widget _buildErrorWidget() {
-    return Container(
-      color: Colors.grey[200],
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.image_not_supported,
-            color: Colors.grey[400],
-            size: 32,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'No Image',
-            style: TextStyle(
-              color: Colors.grey[500],
-              fontSize: 12,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
