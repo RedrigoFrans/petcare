@@ -1,10 +1,19 @@
 import 'package:flutter/material.dart';
-import 'checkout.dart'; // Pastikan path ini benar
+import 'checkout.dart';
 
 class Cart extends StatefulWidget {
   final List<Map<String, dynamic>> cartItems;
+  final Function(int index)? onItemRemoved; // Callback untuk item yang dihapus berdasarkan index
+  final Function(int index, int newQuantity)? onQuantityChanged; // Callback untuk perubahan quantity
+  final Function(List<Map<String, dynamic>>)? onCartChanged; // Callback untuk update seluruh cart
 
-  const Cart({super.key, required this.cartItems});
+  const Cart({
+    super.key, 
+    required this.cartItems, 
+    this.onItemRemoved, 
+    this.onQuantityChanged, 
+    this.onCartChanged
+  });
 
   @override
   State<Cart> createState() => _CartState();
@@ -20,41 +29,35 @@ class _CartState extends State<Cart> {
   @override
   void initState() {
     super.initState();
-    // widget.cartItems now receives:
-    // 'id': int
-    // 'name': String
-    // 'price': double (numeric price)
-    // 'price_display': String (e.g., "Rp. XXX")
-    // 'image': String
-    // 'quantity': int
-
     items = widget.cartItems.map((originalCartItem) {
       return {
-        'id': originalCartItem['id'] as int, // Should be int
+        'id': originalCartItem['id'] as int,
         'name': originalCartItem['name'] as String? ?? 'Unknown Item',
         'image': originalCartItem['image'] as String? ?? 'assets/images/placeholder.jpg',
-        
-        // Use the 'price_display' string passed from shop.dart
-        // Fallback to formatting the numeric 'price' if 'price_display' is somehow null
         'price_display': originalCartItem['price_display'] as String? ??
                          (originalCartItem['price'] != null
                              ? 'Rp. ${ (originalCartItem['price'] as double).toStringAsFixed(0) }'
                              : 'Rp. 0'),
-
-        // Use the numeric 'price' (double) passed from shop.dart
         'price': (originalCartItem['price'] as num?)?.toDouble() ?? 0.0,
-
-        // Use the numeric 'quantity' (int) passed from shop.dart
         'quantity': (originalCartItem['quantity'] as num?)?.toInt() ?? 1,
       };
     }).toList();
-    // print("Keranjang initState internal items: $items");
+  }
+
+  // Method untuk update cart di parent (Shop)
+  void _updateParentCart() {
+    if (widget.onCartChanged != null) {
+      widget.onCartChanged!(List<Map<String, dynamic>>.from(items));
+    }
   }
 
   void removeItem(int index) {
     setState(() {
       items.removeAt(index);
     });
+
+    // Update parent cart
+    _updateParentCart();
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -74,18 +77,24 @@ class _CartState extends State<Cart> {
 
   void increaseQuantity(int index) {
     setState(() {
-      // Ensure quantity is treated as int
       items[index]['quantity'] = ((items[index]['quantity'] as num?)?.toInt() ?? 1) + 1;
     });
+    
+    // Update parent cart
+    _updateParentCart();
   }
 
   void decreaseQuantity(int index) {
-    setState(() {
-      int currentQty = (items[index]['quantity'] as num?)?.toInt() ?? 1;
-      if (currentQty > 1) {
+    int currentQty = (items[index]['quantity'] as num?)?.toInt() ?? 1;
+    
+    if (currentQty > 1) {
+      setState(() {
         items[index]['quantity'] = currentQty - 1;
-      }
-    });
+      });
+      
+      // Update parent cart
+      _updateParentCart();
+    }
   }
 
   @override
@@ -195,10 +204,9 @@ class _CartState extends State<Cart> {
                     itemCount: items.length,
                     itemBuilder: (context, index) {
                       final item = items[index];
-                      // Ensure types are correct for calculation and display
                       int qty = (item['quantity'] as num?)?.toInt() ?? 1;
-                      double price = (item['price'] as num?)?.toDouble() ?? 0.0; // numeric price
-                      String priceDisplay = item['price_display'] as String? ?? 'Rp. 0'; // display price string
+                      double price = (item['price'] as num?)?.toDouble() ?? 0.0;
+                      String priceDisplay = item['price_display'] as String? ?? 'Rp. 0';
                       double subtotal = price * qty;
 
                       return Container(
@@ -265,7 +273,7 @@ class _CartState extends State<Cart> {
                                         color: primaryGreen.withOpacity(0.1),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
-                                      child: Text( // Use price_display for UI
+                                      child: Text(
                                         priceDisplay,
                                         style: TextStyle(
                                           color: darkGreen,
@@ -425,18 +433,23 @@ class _CartState extends State<Cart> {
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) => Checkout(
-                                        // Pass items to Checkout with correct types
-                                        // _CartState.items already have id (int), price (double), quantity (int)
                                         cartItems: items.map((item) {
                                           return {
-                                            'id': item['id'], // int
-                                            'name': item['name'] ?? '', // String
-                                            'price': (item['price'] as num?)?.toDouble() ?? 0.0, // double
-                                            'quantity': (item['quantity'] as num?)?.toInt() ?? 1, // int
-                                            // 'image' and 'price_display' are not directly used by Checkout logic, but could be passed if needed
+                                            'id': item['id'],
+                                            'name': item['name'] ?? '',
+                                            'price': (item['price'] as num?)?.toDouble() ?? 0.0,
+                                            'quantity': (item['quantity'] as num?)?.toInt() ?? 1,
                                           };
                                         }).toList(),
                                         onConfirm: () {
+                                          // Clear cart setelah checkout berhasil
+                                          setState(() {
+                                            items.clear();
+                                          });
+                                          
+                                          // Update parent cart (clear semua)
+                                          _updateParentCart();
+                                          
                                           Navigator.popUntil(context, (route) => route.isFirst);
                                           ScaffoldMessenger.of(context).showSnackBar(
                                             SnackBar(

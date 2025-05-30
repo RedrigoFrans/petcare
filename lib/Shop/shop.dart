@@ -12,7 +12,7 @@ class Shop extends StatefulWidget {
 }
 
 class _ShopState extends State<Shop> {
-  final List<Map<String, dynamic>> cartItems = [];
+  List<Map<String, dynamic>> cartItems = [];
   List<Map<String, dynamic>> products = [];
   bool _isLoading = true;
   String _errorMessage = '';
@@ -29,6 +29,13 @@ class _ShopState extends State<Shop> {
     super.initState();
     _fetchProducts();
   }
+
+    void updateCartItems(List<Map<String, dynamic>> newCartItems) {
+    setState(() {
+      cartItems = newCartItems;
+    });
+  }
+
 
   Future<void> _fetchProducts() async {
     if (!mounted) return;
@@ -297,10 +304,18 @@ Widget _buildImageWidget(String imageUrl, {double? height}) {
               IconButton(
                 icon: const Icon(Icons.shopping_cart, color: Colors.orange),
                 onPressed: () {
+                  // Di shop.dart, saat navigasi ke Cart
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => Cart(cartItems: List.from(cartItems)),
+                      builder: (context) => Cart(
+                        cartItems: cartItems,
+                        onCartChanged: (updatedCart) {
+                          setState(() {
+                            cartItems = List<Map<String, dynamic>>.from(updatedCart);
+                          });
+                        },
+                      ),
                     ),
                   );
                 },

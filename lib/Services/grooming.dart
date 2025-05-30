@@ -1,589 +1,714 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class Grooming extends StatefulWidget {
   const Grooming({Key? key}) : super(key: key);
 
   @override
-  State<Grooming> createState() => _GroomingScreenState();
+  State<Grooming> createState() => _GroomingState();
 }
 
-class _GroomingScreenState extends State<Grooming> {
+class _GroomingState extends State<Grooming> with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
 
-  bool isAdmin = false;
-
+  bool showPackageSelection = true;
   String selectedPackage = 'Basic';
-  bool pickupNeeded = false;
-  String pickupTime = 'Pagi';
-  String groomingStatus = 'Dipesan';
-  double distance = 1.0;
 
-  // Hewan info
-  String petName = '';
-  String petType = 'Anjing';
-  String petSize = 'Kecil';
-  String notes = '';
-  String phoneNumber = '';
+  DateTime selectedDate = DateTime.now().add(const Duration(days: 1));
+  TimeOfDay selectedTime = const TimeOfDay(hour: 10, minute: 0);
 
-  // Deskripsi paket grooming
+  String contactNumber = '';
+  String contactEmail = '';
+  String additionalNotes = '';
+
   final Map<String, String> groomingDescriptions = {
-    'Basic': 'Mandi, kering, potong kuku, bersih telinga. Untuk perawatan rutin.',
-    'Premium': 'Basic + potong bulu, pembersihan kelenjar, parfum. Tampilan lebih rapi.',
-    'Full Treatment': 'Premium + anti-kutu, masker bulu, pijat relaksasi. Perawatan menyeluruh.',
+    'Basic': 'Mandi, kering, potong kuku, bersih telinga.',
+    'Premium': 'Basic + potong bulu, parfum, kelenjar.',
+    'Full Treatment': 'Premium + anti-kutu, masker bulu, relaksasi.',
   };
 
-  // Package prices for visual display
   final Map<String, int> packagePrices = {
     'Basic': 50000,
     'Premium': 85000,
     'Full Treatment': 120000,
   };
 
-  // Package icons
   final Map<String, IconData> packageIcons = {
     'Basic': Icons.pets,
     'Premium': Icons.star,
     'Full Treatment': Icons.diamond,
   };
 
-  double getPickupFee() {
-    if (!pickupNeeded) return 0;
-    if (distance <= 3) return 10000;
-    if (distance <= 6) return 20000;
-    return 30000;
+  final Map<String, Color> packageColors = {
+    'Basic': const Color(0xFF4CAF50),
+    'Premium': const Color(0xFF2E7D32),
+    'Full Treatment': const Color(0xFF1B5E20),
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+    _animationController.forward();
   }
 
-  void _submitGrooming() {
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  void _continueToBooking() {
+    _animationController.reset();
+    setState(() {
+      showPackageSelection = false;
+    });
+    _animationController.forward();
+  }
+
+  void _backToPackageSelection() {
+    _animationController.reset();
+    setState(() {
+      showPackageSelection = true;
+    });
+    _animationController.forward();
+  }
+
+  Future<void> _submitBooking() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
 
-      // Simpan ke database di sini
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return const AlertDialog(
+            content: Row(
+              children: [
+                CircularProgressIndicator(color: Color(0xFF4CAF50)),
+                SizedBox(width: 20),
+                Text("Mengirim booking..."),
+              ],
+            ),
+          );
+        },
+      );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Row(
+      final url = Uri.parse('http://127.0.0.1:8000/api/groomings');
+
+      try {
+        final response = await http.post(
+          url,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'kategori': selectedPackage.toLowerCase().replaceAll(' ', '_'),
+            'tanggal': selectedDate.toIso8601String().split('T').first,
+            'jam': '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}',
+            'email': contactEmail,
+            'phone': contactNumber,
+            'catatan': additionalNotes,
+          }),
+        );
+
+        Navigator.pop(context); // Close loading dialog
+
+        if (response.statusCode == 201) {
+          _showSuccessDialog();
+        } else {
+          _showErrorSnackBar('Gagal: ${response.body}');
+        }
+      } catch (e) {
+        Navigator.pop(context); // Close loading dialog
+        _showErrorSnackBar('Koneksi gagal. Silakan coba lagi.');
+      }
+    }
+  }
+
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          title: Row(
             children: [
-              Icon(Icons.check_circle, color: Colors.white),
-              SizedBox(width: 8),
-              Text('Layanan Grooming diterima menunggu konfirmasi admin'),
+              Icon(Icons.check_circle, color: Color(0xFF4CAF50), size: 30),
+              SizedBox(width: 10),
+              Text('Berhasil!', style: TextStyle(color: Color(0xFF2E7D32))),
             ],
           ),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
-    }
+          content: Text('Booking grooming Anda berhasil dikirim!'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.pop(context);
+              },
+              child: Text('OK', style: TextStyle(color: Color(0xFF4CAF50))),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: const Color(0xFFF1F8E9),
       appBar: AppBar(
-        title: const Text('Layanan Grooming', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.green,
-        foregroundColor: Colors.white,
+        title: const Text(
+          "Grooming Booking",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: const Color(0xFF2E7D32),
         elevation: 0,
         centerTitle: true,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Pet Information Card
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.green.shade100,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(Icons.pets, color: Colors.green),
-                          ),
-                          const SizedBox(width: 12),
-                          const Text(
-                            'Data Hewan',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      TextFormField(
-                        decoration: InputDecoration(
-                          labelText: 'Nama Hewan',
-                          prefixIcon: const Icon(Icons.pets_outlined),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          filled: true,
-                          fillColor: Colors.grey[50],
-                        ),
-                        onSaved: (val) => petName = val ?? '',
-                        validator: (val) => val == null || val.isEmpty ? 'Wajib diisi' : null,
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        decoration: InputDecoration(
-                          labelText: 'Nomor Telepon',
-                          prefixIcon: const Icon(Icons.phone_outlined),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          filled: true,
-                          fillColor: Colors.grey[50],
-                        ),
-                        keyboardType: TextInputType.phone,
-                        onSaved: (val) => phoneNumber = val ?? '',
-                        validator: (val) => val == null || val.isEmpty ? 'Nomor telepon wajib diisi' : null,
-                      ),
-                      const SizedBox(height: 16),
-                      DropdownButtonFormField<String>(
-                        value: petType,
-                        decoration: InputDecoration(
-                          labelText: 'Jenis Hewan',
-                          prefixIcon: const Icon(Icons.category_outlined),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          filled: true,
-                          fillColor: Colors.grey[50],
-                        ),
-                        items: ['Anjing', 'Kucing', 'Lainnya']
-                            .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                            .toList(),
-                        onChanged: (val) => setState(() => petType = val!),
-                      ),
-                      const SizedBox(height: 16),
-                      DropdownButtonFormField<String>(
-                        value: petSize,
-                        decoration: InputDecoration(
-                          labelText: 'Ukuran Hewan',
-                          prefixIcon: const Icon(Icons.straighten_outlined),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          filled: true,
-                          fillColor: Colors.grey[50],
-                        ),
-                        items: ['Kecil', 'Sedang', 'Besar']
-                            .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                            .toList(),
-                        onChanged: (val) => setState(() => petSize = val!),
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        decoration: InputDecoration(
-                          labelText: 'Catatan Khusus',
-                          prefixIcon: const Icon(Icons.note_outlined),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          filled: true,
-                          fillColor: Colors.grey[50],
-                        ),
-                        maxLines: 2,
-                        onSaved: (val) => notes = val ?? '',
-                      ),
-                    ],
+      body: FadeTransition(
+        opacity: _fadeAnimation,
+        child: showPackageSelection ? _buildPackageSelection() : _buildBookingForm(),
+      ),
+    );
+  }
+
+  Widget _buildPackageSelection() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(15),
+              boxShadow: [
+                BoxShadow(
+                  color: Color(0xFF4CAF50).withOpacity(0.3),
+                  blurRadius: 10,
+                  offset: Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Icon(Icons.pets, size: 40, color: Colors.white),
+                SizedBox(height: 10),
+                Text(
+                  'Pilih Paket Grooming',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Grooming Package Selection Card
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.green.shade100,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(Icons.spa, color: Colors.green),
-                          ),
-                          const SizedBox(width: 12),
-                          const Text(
-                            'Pilih Paket Grooming',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      ...['Basic', 'Premium', 'Full Treatment'].map((option) {
-                        bool isSelected = selectedPackage == option;
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: isSelected ? Colors.green : Colors.grey[300]!,
-                              width: isSelected ? 2 : 1,
-                            ),
-                            color: isSelected ? Colors.green.shade100 : Colors.white,
-                          ),
-                          child: RadioListTile(
-                            title: Row(
-                              children: [
-                                Icon(
-                                  packageIcons[option],
-                                  color: isSelected ? Colors.green : Colors.grey[600],
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  option,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: isSelected ? Colors.green : Colors.black87,
-                                  ),
-                                ),
-                                const Spacer(),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: isSelected ? Colors.green : Colors.grey[400],
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    'Rp ${packagePrices[option]!.toString()}',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            subtitle: Padding(
-                              padding: const EdgeInsets.only(top: 8),
-                              child: Text(
-                                groomingDescriptions[option] ?? '',
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                            value: option,
-                            groupValue: selectedPackage,
-                            onChanged: (val) => setState(() => selectedPackage = val.toString()),
-                            activeColor: Colors.green,
-                          ),
-                        );
-                      }),
-                    ],
+                SizedBox(height: 5),
+                Text(
+                  'Berikan perawatan terbaik untuk hewan kesayangan Anda',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.white.withOpacity(0.9),
                   ),
+                  textAlign: TextAlign.center,
                 ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Pickup Service Card
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.green.shade100,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(Icons.local_shipping, color: Colors.green),
-                          ),
-                          const SizedBox(width: 12),
-                          const Text(
-                            'Layanan Antar-Jemput',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey[300]!),
-                        ),
-                        child: CheckboxListTile(
-                          title: const Text('Butuh antar-jemput?'),
-                          subtitle: const Text('Kami akan menjemput dan mengantar hewan peliharaan Anda'),
-                          value: pickupNeeded,
-                          onChanged: (val) => setState(() => pickupNeeded = val ?? false),
-                          activeColor: Colors.green,
-                        ),
-                      ),
-                      if (pickupNeeded) ...[
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          decoration: InputDecoration(
-                            labelText: 'Alamat Penjemputan',
-                            prefixIcon: const Icon(Icons.location_on_outlined),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            filled: true,
-                            fillColor: Colors.grey[50],
-                          ),
-                          validator: (val) {
-                            if (pickupNeeded && (val == null || val.isEmpty)) {
-                              return 'Alamat harus diisi';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        DropdownButtonFormField<String>(
-                          value: pickupTime,
-                          decoration: InputDecoration(
-                            labelText: 'Jadwal Penjemputan',
-                            prefixIcon: const Icon(Icons.schedule_outlined),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            filled: true,
-                            fillColor: Colors.grey[50],
-                          ),
-                          items: ['Pagi', 'Siang', 'Sore']
-                              .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                              .toList(),
-                          onChanged: (val) => setState(() => pickupTime = val!),
-                        ),
-                        const SizedBox(height: 20),
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.green.shade100,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.green.shade200),
-                          ),
-                          child: Column(
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(Icons.straighten, color: Colors.green),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Estimasi Jarak: ${distance.toStringAsFixed(1)} km',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.green,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              Slider(
-                                value: distance,
-                                min: 1,
-                                max: 10,
-                                divisions: 9,
-                                label: '${distance.toStringAsFixed(1)} km',
-                                onChanged: (val) => setState(() => distance = val),
-                                activeColor: Colors.green,
-                                inactiveColor: Colors.green.shade200,
-                              ),
-                              const SizedBox(height: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: Colors.green,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(
-                                  'Biaya Antar-Jemput: Rp ${getPickupFee().toStringAsFixed(0)}',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Status Card
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.green.shade100,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(Icons.track_changes, color: Colors.green),
-                          ),
-                          const SizedBox(width: 12),
-                          const Text(
-                            'Status Grooming',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      isAdmin
-                          ? Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.grey[300]!),
-                          color: Colors.grey[50],
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: DropdownButton<String>(
-                          value: groomingStatus,
-                          isExpanded: true,
-                          underline: const SizedBox(),
-                          items: [
-                            'Dipesan',
-                            'Dalam Perjalanan',
-                            'Sampai di Tempat Grooming',
-                            'Selesai Grooming',
-                            'Diantar Pulang',
-                          ].map((status) => DropdownMenuItem(
-                              value: status,
-                              child: Text(status)
-                          )).toList(),
-                          onChanged: (val) => setState(() => groomingStatus = val!),
-                        ),
-                      )
-                          : Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Colors.green.shade100, Colors.green.shade200],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.green.shade300),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: Colors.green,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.info, color: Colors.white, size: 16),
-                            ),
-                            const SizedBox(width: 12),
-                            const Text(
-                              "Status: ",
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                            ),
-                            Text(
-                              groomingStatus,
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.green,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 30),
-
-              // Submit Button
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: _submitGrooming,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    elevation: 4,
-                  ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.check_circle_outline, size: 24),
-                      SizedBox(width: 8),
-                      Text(
-                        'Konfirmasi Layanan',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-            ],
+              ],
+            ),
           ),
+          const SizedBox(height: 25),
+          ...packagePrices.keys.map((pkg) {
+            bool isSelected = selectedPackage == pkg;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 15),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(
+                  color: isSelected ? packageColors[pkg]! : Colors.grey.shade300,
+                  width: isSelected ? 2 : 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: isSelected 
+                        ? packageColors[pkg]!.withOpacity(0.2)
+                        : Colors.grey.withOpacity(0.1),
+                    blurRadius: isSelected ? 8 : 4,
+                    offset: Offset(0, isSelected ? 4 : 2),
+                  ),
+                ],
+              ),
+              child: ListTile(
+                contentPadding: const EdgeInsets.all(16),
+                leading: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: packageColors[pkg]!.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    packageIcons[pkg],
+                    color: packageColors[pkg],
+                    size: 28,
+                  ),
+                ),
+                title: Text(
+                  pkg,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: isSelected ? packageColors[pkg] : Colors.black87,
+                  ),
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 5),
+                    Text(
+                      groomingDescriptions[pkg]!,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: packageColors[pkg]!.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        'Rp ${packagePrices[pkg]!.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: packageColors[pkg],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                trailing: Radio<String>(
+                  value: pkg,
+                  groupValue: selectedPackage,
+                  activeColor: packageColors[pkg],
+                  onChanged: (val) {
+                    setState(() {
+                      selectedPackage = val!;
+                    });
+                  },
+                ),
+                onTap: () {
+                  setState(() {
+                    selectedPackage = pkg;
+                  });
+                },
+              ),
+            );
+          }),
+          const SizedBox(height: 30),
+          Container(
+            width: double.infinity,
+            height: 55,
+            child: ElevatedButton(
+              onPressed: _continueToBooking,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(0xFF4CAF50),
+                foregroundColor: Colors.white,
+                elevation: 5,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                shadowColor: Color(0xFF4CAF50).withOpacity(0.4),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    "Lanjut ke Booking",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(width: 10),
+                  Icon(Icons.arrow_forward),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBookingForm() {
+    return Form(
+      key: _formKey,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(15),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Icon(
+                    packageIcons[selectedPackage],
+                    size: 40,
+                    color: packageColors[selectedPackage],
+                  ),
+                  SizedBox(height: 10),
+                  Text(
+                    'Paket $selectedPackage',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: packageColors[selectedPackage],
+                    ),
+                  ),
+                  SizedBox(height: 5),
+                  Text(
+                    'Rp ${packagePrices[selectedPackage]!.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF2E7D32),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 25),
+            
+            _buildSectionTitle('Jadwal Appointment'),
+            const SizedBox(height: 10),
+            
+            _buildDateTimeCard(),
+            const SizedBox(height: 25),
+            
+            _buildSectionTitle('Informasi Kontak'),
+            const SizedBox(height: 10),
+            
+            _buildInputCard(
+              child: Column(
+                children: [
+                  _buildTextField(
+                    icon: Icons.email,
+                    label: 'Email',
+                    validator: (val) {
+                      if (val == null || val.isEmpty) return 'Email wajib diisi';
+                      if (!val.contains('@')) return 'Format email tidak valid';
+                      return null;
+                    },
+                    onSaved: (val) => contactEmail = val!,
+                  ),
+                  const SizedBox(height: 20),
+                  _buildTextField(
+                    icon: Icons.phone,
+                    label: 'Nomor Telepon',
+                    keyboardType: TextInputType.phone,
+                    validator: (val) => val!.isEmpty ? 'Nomor telepon wajib diisi' : null,
+                    onSaved: (val) => contactNumber = val!,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 25),
+            
+            _buildSectionTitle('Catatan Tambahan'),
+            const SizedBox(height: 10),
+            
+            _buildInputCard(
+              child: _buildTextField(
+                icon: Icons.note,
+                label: 'Catatan (opsional)',
+                maxLines: 3,
+                onSaved: (val) => additionalNotes = val ?? '',
+              ),
+            ),
+            const SizedBox(height: 30),
+            
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    height: 50,
+                    child: OutlinedButton(
+                      onPressed: _backToPackageSelection,
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Color(0xFF4CAF50), width: 2),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.arrow_back, color: Color(0xFF4CAF50)),
+                          SizedBox(width: 8),
+                          Text(
+                            "Kembali",
+                            style: TextStyle(
+                              color: Color(0xFF4CAF50),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 15),
+                Expanded(
+                  flex: 2,
+                  child: Container(
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: _submitBooking,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF4CAF50),
+                        foregroundColor: Colors.white,
+                        elevation: 5,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        shadowColor: Color(0xFF4CAF50).withOpacity(0.4),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.send),
+                          SizedBox(width: 8),
+                          Text(
+                            "Kirim Booking",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: Color(0xFF2E7D32),
+      ),
+    );
+  }
+
+  Widget _buildDateTimeCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 10,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          ListTile(
+            contentPadding: const EdgeInsets.all(20),
+            leading: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Color(0xFF4CAF50).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(Icons.calendar_today, color: Color(0xFF4CAF50)),
+            ),
+            title: Text(
+              "Tanggal",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            subtitle: Text(
+              "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}",
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+            ),
+            trailing: Icon(Icons.arrow_forward_ios, color: Color(0xFF4CAF50)),
+            onTap: () async {
+              DateTime? picked = await showDatePicker(
+                context: context,
+                initialDate: selectedDate,
+                firstDate: DateTime.now(),
+                lastDate: DateTime(2100),
+                builder: (context, child) {
+                  return Theme(
+                    data: Theme.of(context).copyWith(
+                      colorScheme: ColorScheme.light(
+                        primary: Color(0xFF4CAF50),
+                        onPrimary: Colors.white,
+                        surface: Colors.white,
+                        onSurface: Colors.black,
+                      ),
+                    ),
+                    child: child!,
+                  );
+                },
+              );
+              if (picked != null) {
+                setState(() {
+                  selectedDate = picked;
+                });
+              }
+            },
+          ),
+          Divider(height: 1, color: Colors.grey.shade200),
+          ListTile(
+            contentPadding: const EdgeInsets.all(20),
+            leading: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Color(0xFF4CAF50).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(Icons.access_time, color: Color(0xFF4CAF50)),
+            ),
+            title: Text(
+              "Waktu",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            subtitle: Text(
+              "${selectedTime.format(context)}",
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+            ),
+            trailing: Icon(Icons.arrow_forward_ios, color: Color(0xFF4CAF50)),
+            onTap: () async {
+              TimeOfDay? picked = await showTimePicker(
+                context: context,
+                initialTime: selectedTime,
+                builder: (context, child) {
+                  return Theme(
+                    data: Theme.of(context).copyWith(
+                      colorScheme: ColorScheme.light(
+                        primary: Color(0xFF4CAF50),
+                        onPrimary: Colors.white,
+                        surface: Colors.white,
+                        onSurface: Colors.black,
+                      ),
+                    ),
+                    child: child!,
+                  );
+                },
+              );
+              if (picked != null) {
+                setState(() {
+                  selectedTime = picked;
+                });
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInputCard({required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 10,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildTextField({
+    required IconData icon,
+    required String label,
+    String? Function(String?)? validator,
+    void Function(String?)? onSaved,
+    TextInputType? keyboardType,
+    int maxLines = 1,
+  }) {
+    return TextFormField(
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: Color(0xFF4CAF50)),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Color(0xFF4CAF50), width: 2),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+        labelStyle: TextStyle(color: Colors.grey.shade600),
+      ),
+      validator: validator,
+      onSaved: onSaved,
+      keyboardType: keyboardType,
+      maxLines: maxLines,
     );
   }
 }
