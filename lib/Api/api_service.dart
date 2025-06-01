@@ -76,7 +76,7 @@ class ApiService {
 
           // Check response status
           if (responseMap['status'] != null && responseMap['status'] != 'success') {
-            throw Exception('API returned error: ${responseMap['message'] ?? 'Unknown error'}');
+            throw Exception('Api returned error: ${responseMap['message'] ?? 'Unknown error'}');
           }
 
           // Get products data
@@ -182,7 +182,7 @@ class ApiService {
         final Map<String, dynamic> responseMap = jsonData;
 
         if (responseMap['status'] != null && responseMap['status'] != 'success') {
-          throw Exception('API returned error: ${responseMap['message'] ?? 'Unknown error'}');
+          throw Exception('Api returned error: ${responseMap['message'] ?? 'Unknown error'}');
         }
 
         final dynamic productData = responseMap['data'] ?? responseMap;
