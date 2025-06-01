@@ -22,6 +22,7 @@ class _GroomingState extends State<Grooming> with TickerProviderStateMixin {
 
   String contactNumber = '';
   String contactEmail = '';
+  String contactName = '';
   String additionalNotes = '';
 
   final Map<String, String> groomingDescriptions = {
@@ -104,32 +105,59 @@ class _GroomingState extends State<Grooming> with TickerProviderStateMixin {
         },
       );
 
+      // Ganti URL sesuai dengan setup Laravel Anda
       final url = Uri.parse('http://127.0.0.1:8000/api/groomings');
 
       try {
+        final bookingData = {
+          'name': contactName,
+          'kategori': selectedPackage.toLowerCase().replaceAll(' ', '_'),
+          'tanggal': selectedDate.toIso8601String().split('T').first,
+          'jam': '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}',
+          'email': contactEmail,
+          'phone': contactNumber,
+          'catatan': additionalNotes,
+        };
+
+        print('Sending booking data: $bookingData'); // Debug log
+
         final response = await http.post(
           url,
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'kategori': selectedPackage.toLowerCase().replaceAll(' ', '_'),
-            'tanggal': selectedDate.toIso8601String().split('T').first,
-            'jam': '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}',
-            'email': contactEmail,
-            'phone': contactNumber,
-            'catatan': additionalNotes,
-          }),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: jsonEncode(bookingData),
         );
 
         Navigator.pop(context); // Close loading dialog
 
+        print('Response status: ${response.statusCode}'); // Debug log
+        print('Response body: ${response.body}'); // Debug log
+
         if (response.statusCode == 201) {
           _showSuccessDialog();
         } else {
-          _showErrorSnackBar('Gagal: ${response.body}');
+          // Parse error response
+          String errorMessage = 'Gagal mengirim booking';
+          try {
+            final errorData = jsonDecode(response.body);
+            if (errorData['message'] != null) {
+              errorMessage = errorData['message'];
+            } else if (errorData['errors'] != null) {
+              // Handle validation errors
+              final errors = errorData['errors'] as Map<String, dynamic>;
+              errorMessage = errors.values.first[0] ?? errorMessage;
+            }
+          } catch (e) {
+            errorMessage = 'Error: ${response.statusCode} - ${response.body}';
+          }
+          _showErrorSnackBar(errorMessage);
         }
       } catch (e) {
         Navigator.pop(context); // Close loading dialog
-        _showErrorSnackBar('Koneksi gagal. Silakan coba lagi.');
+        print('Connection error: $e'); // Debug log
+        _showErrorSnackBar('Koneksi gagal. Pastikan server Laravel berjalan dan coba lagi.');
       }
     }
   }
@@ -169,6 +197,7 @@ class _GroomingState extends State<Grooming> with TickerProviderStateMixin {
         backgroundColor: Colors.red,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: Duration(seconds: 5),
       ),
     );
   }
@@ -431,6 +460,16 @@ class _GroomingState extends State<Grooming> with TickerProviderStateMixin {
               child: Column(
                 children: [
                   _buildTextField(
+                    icon: Icons.person,
+                    label: 'Nama',
+                    validator: (val) {
+                      if (val == null || val.isEmpty) return 'Nama wajib diisi';
+                      return null;
+                    },
+                    onSaved: (val) => contactName = val!,
+                  ),
+                  const SizedBox(height: 20),
+                  _buildTextField(
                     icon: Icons.email,
                     label: 'Email',
                     validator: (val) {
@@ -451,6 +490,7 @@ class _GroomingState extends State<Grooming> with TickerProviderStateMixin {
                 ],
               ),
             ),
+
             const SizedBox(height: 25),
             
             _buildSectionTitle('Catatan Tambahan'),
@@ -680,12 +720,16 @@ class _GroomingState extends State<Grooming> with TickerProviderStateMixin {
   Widget _buildTextField({
     required IconData icon,
     required String label,
-    String? Function(String?)? validator,
-    void Function(String?)? onSaved,
     TextInputType? keyboardType,
     int maxLines = 1,
+    String? Function(String?)? validator,
+    void Function(String?)? onSaved,
   }) {
     return TextFormField(
+      keyboardType: keyboardType,
+      maxLines: maxLines,
+      validator: validator,
+      onSaved: onSaved,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon, color: Color(0xFF4CAF50)),
@@ -701,14 +745,17 @@ class _GroomingState extends State<Grooming> with TickerProviderStateMixin {
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey.shade300),
         ),
-        filled: true,
-        fillColor: Colors.grey.shade50,
-        labelStyle: TextStyle(color: Colors.grey.shade600),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.red),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.red, width: 2),
+        ),
+        labelStyle: TextStyle(color: Colors.grey.shade700),
+        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
-      validator: validator,
-      onSaved: onSaved,
-      keyboardType: keyboardType,
-      maxLines: maxLines,
     );
   }
 }
