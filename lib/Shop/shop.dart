@@ -1,8 +1,11 @@
+// shop.dart
 import 'package:flutter/material.dart';
 import 'package:petcare1/Api/api_service.dart';
 import 'item_detail.dart';
 import 'package:petcare1/Shop/keranjang.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:provider/provider.dart'; // Import provider
+import 'package:petcare1/Shop/cart_provider.dart'; // Import CartProvider
 
 class Shop extends StatefulWidget {
   const Shop({super.key});
@@ -12,7 +15,7 @@ class Shop extends StatefulWidget {
 }
 
 class _ShopState extends State<Shop> {
-  List<Map<String, dynamic>> cartItems = [];
+  // Hapus List<Map<String, dynamic>> cartItems = [];
   List<Map<String, dynamic>> products = [];
   bool _isLoading = true;
   String _errorMessage = '';
@@ -20,8 +23,7 @@ class _ShopState extends State<Shop> {
 
   final ApiService _apiService = ApiService();
 
-  // PERBAIKAN: Ganti localhost dengan IP address yang benar
-  static const String baseUrl = 'http://127.0.0.1:8000'; // Sesuaikan dengan IP server Anda
+  static const String baseUrl = 'http://127.0.0.1:8000';
   static const bool debugMode = true;
 
   @override
@@ -30,12 +32,7 @@ class _ShopState extends State<Shop> {
     _fetchProducts();
   }
 
-    void updateCartItems(List<Map<String, dynamic>> newCartItems) {
-    setState(() {
-      cartItems = newCartItems;
-    });
-  }
-
+  // Hapus void updateCartItems(List<Map<String, dynamic>> newCartItems) {} karena akan dihandle oleh Provider
 
   Future<void> _fetchProducts() async {
     if (!mounted) return;
@@ -43,7 +40,7 @@ class _ShopState extends State<Shop> {
       _isLoading = true;
       _errorMessage = '';
     });
-    
+
     try {
       final fetchedProducts = await _apiService.getProducts();
       if (!mounted) return;
@@ -65,7 +62,7 @@ class _ShopState extends State<Shop> {
           }
 
           final imageUrl = _parseImageUrl(p['image_url']);
-          
+
           if (debugMode) {
             print('Product: ${p['name']}');
             print('Original image: ${p['image_url']}');
@@ -90,114 +87,105 @@ class _ShopState extends State<Shop> {
         _isLoading = false;
         _errorMessage = "Failed to load products: ${e.toString()}";
       });
-      
+
       if (debugMode) {
         print('Error fetching products: $e');
       }
     }
   }
 
-// Method _parseImageUrl yang diperbaiki
-String _parseImageUrl(dynamic imageUrl) {
-  if (debugMode) {
-    print('Parsing image URL: $imageUrl (Type: ${imageUrl.runtimeType})');
-  }
-  
-  // Jika null atau empty, return placeholder
-  if (imageUrl == null || imageUrl.toString().trim().isEmpty) {
-    if (debugMode) print('Image URL is null/empty, using placeholder');
+  String _parseImageUrl(dynamic imageUrl) {
+    if (debugMode) {
+      print('Parsing image URL: $imageUrl (Type: ${imageUrl.runtimeType})');
+    }
+
+    if (imageUrl == null || imageUrl.toString().trim().isEmpty) {
+      if (debugMode) print('Image URL is null/empty, using placeholder');
+      return 'assets/images/placeholder.jpg';
+    }
+
+    final url = imageUrl.toString().trim();
+
+    String filename = '';
+
+    if (url.contains('/storage/')) {
+      final parts = url.split('/storage/');
+      if (parts.length > 1) {
+        filename = parts.last;
+        if (filename.startsWith('products/')) {
+          filename = filename.substring(9);
+        }
+      }
+    } else if (url.contains('/')) {
+      filename = url.split('/').last;
+    } else {
+      filename = url;
+    }
+
+    if (filename.isNotEmpty) {
+      final apiImageUrl = '$baseUrl/api/images/$filename';
+      if (debugMode) {
+        print('Using API image URL: $apiImageUrl');
+      }
+      return apiImageUrl;
+    }
+
+    if (debugMode) print('Could not extract filename, using placeholder');
     return 'assets/images/placeholder.jpg';
   }
-  
-  final url = imageUrl.toString().trim();
-  
-  // PERBAIKAN: Extract filename untuk menggunakan API endpoint
-  String filename = '';
-  
-  if (url.contains('/storage/')) {
-    // Extract filename dari URL storage
-    final parts = url.split('/storage/');
-    if (parts.length > 1) {
-      filename = parts.last;
-      // Remove 'products/' prefix if exists
-      if (filename.startsWith('products/')) {
-        filename = filename.substring(9);
-      }
-    }
-  } else if (url.contains('/')) {
-    // Extract filename dari path
-    filename = url.split('/').last;
-  } else {
-    filename = url;
-  }
-  
-  if (filename.isNotEmpty) {
-    // PERBAIKAN: Gunakan API endpoint untuk serve image
-    final apiImageUrl = '$baseUrl/api/images/$filename';
+
+  Widget _buildImageWidget(String imageUrl, {double? height}) {
     if (debugMode) {
-      print('Using API image URL: $apiImageUrl');
+      print('Building image widget for: $imageUrl');
     }
-    return apiImageUrl;
-  }
-  
-  // Fallback ke placeholder jika tidak bisa extract filename
-  if (debugMode) print('Could not extract filename, using placeholder');
-  return 'assets/images/placeholder.jpg';
-}
 
-// PERBAIKAN: Image widget dengan error handling yang lebih baik
-Widget _buildImageWidget(String imageUrl, {double? height}) {
-  if (debugMode) {
-    print('Building image widget for: $imageUrl');
-  }
-
-  if (imageUrl.startsWith('assets/')) {
-    return Image.asset(
-      imageUrl,
-      fit: BoxFit.cover,
-      height: height,
-      errorBuilder: (context, error, stackTrace) {
-        if (debugMode) print('Error loading asset: $imageUrl - $error');
-        return _buildErrorWidget();
-      },
-    );
-  } else {
-    return CachedNetworkImage(
-      imageUrl: imageUrl,
-      fit: BoxFit.cover,
-      height: height,
-      placeholder: (context, url) => Container(
-        color: Colors.grey[100],
-        child: Center(
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            valueColor: AlwaysStoppedAnimation<Color>(
-              Colors.orange.shade300,
+    if (imageUrl.startsWith('assets/')) {
+      return Image.asset(
+        imageUrl,
+        fit: BoxFit.cover,
+        height: height,
+        errorBuilder: (context, error, stackTrace) {
+          if (debugMode) print('Error loading asset: $imageUrl - $error');
+          return _buildErrorWidget();
+        },
+      );
+    } else {
+      return CachedNetworkImage(
+        imageUrl: imageUrl,
+        fit: BoxFit.cover,
+        height: height,
+        placeholder: (context, url) => Container(
+          color: Colors.grey[100],
+          child: Center(
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                Colors.orange.shade300,
+              ),
             ),
           ),
         ),
-      ),
-      errorWidget: (context, url, error) {
-        if (debugMode) {
-          print('Error loading network image: $url');
-          print('Error details: $error');
-          print('Error type: ${error.runtimeType}');
-        }
-        return _buildErrorWidget();
-      },
-      httpHeaders: const {
-        'User-Agent': 'Flutter App',
-        'Accept': 'image/webp,image/apng,image/jpeg,image/png,image/*,*/*;q=0.8',
-        'Cache-Control': 'no-cache',
-      },
-      fadeInDuration: const Duration(milliseconds: 300),
-      memCacheWidth: 400,
-      memCacheHeight: 400,
-      maxWidthDiskCache: 600,
-      maxHeightDiskCache: 600,
-    );
+        errorWidget: (context, url, error) {
+          if (debugMode) {
+            print('Error loading network image: $url');
+            print('Error details: $error');
+            print('Error type: ${error.runtimeType}');
+          }
+          return _buildErrorWidget();
+        },
+        httpHeaders: const {
+          'User-Agent': 'Flutter App',
+          'Accept': 'image/webp,image/apng,image/jpeg,image/png,image/*,*/*;q=0.8',
+          'Cache-Control': 'no-cache',
+        },
+        fadeInDuration: const Duration(milliseconds: 300),
+        memCacheWidth: 400,
+        memCacheHeight: 400,
+        maxWidthDiskCache: 600,
+        maxHeightDiskCache: 600,
+      );
+    }
   }
-}
 
   Widget _buildErrorWidget() {
     return Container(
@@ -224,22 +212,16 @@ Widget _buildImageWidget(String imageUrl, {double? height}) {
   }
 
   void addToCart(Map<String, dynamic> product) {
-    setState(() {
-      final existingIndex = cartItems.indexWhere((item) => item['id'] == product['id']);
-      if (existingIndex != -1) {
-        cartItems[existingIndex]['quantity'] += product['quantity'] ?? 1;
-      } else {
-        cartItems.add({
-          'id': product['id'],
-          'name': product['name'],
-          'price': product['price_numeric'] ?? product['price'],
-          'price_display': product['price_display'],
-          'image': product['image'],
-          'quantity': product['quantity'] ?? 1,
-        });
-      }
+    // Gunakan Provider untuk menambahkan item
+    Provider.of<CartProvider>(context, listen: false).addItem({
+      'id': product['id'],
+      'name': product['name'],
+      'price': product['price_numeric'] ?? product['price'],
+      'price_display': product['price_display'],
+      'image': product['image'],
+      'quantity': product['quantity'] ?? 1,
     });
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -279,7 +261,7 @@ Widget _buildImageWidget(String imageUrl, {double? height}) {
   List<Map<String, dynamic>> get filteredProducts {
     final query = _searchController.text.toLowerCase();
     if (query.isEmpty) return products;
-    
+
     return products.where((product) {
       return product['name'].toString().toLowerCase().contains(query) ||
              product['description'].toString().toLowerCase().contains(query);
@@ -288,6 +270,9 @@ Widget _buildImageWidget(String imageUrl, {double? height}) {
 
   @override
   Widget build(BuildContext context) {
+    // Akses cartItems dari CartProvider
+    final cartItems = Provider.of<CartProvider>(context).cartItems;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Shop', style: TextStyle(color: Colors.black)),
@@ -304,18 +289,11 @@ Widget _buildImageWidget(String imageUrl, {double? height}) {
               IconButton(
                 icon: const Icon(Icons.shopping_cart, color: Colors.orange),
                 onPressed: () {
-                  // Di shop.dart, saat navigasi ke Cart
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => Cart(
-                        cartItems: cartItems,
-                        onCartChanged: (updatedCart) {
-                          setState(() {
-                            cartItems = List<Map<String, dynamic>>.from(updatedCart);
-                          });
-                        },
-                      ),
+                      // Hapus onCartChanged karena Cart kini akan mengakses CartProvider secara langsung
+                      builder: (context) => const Cart(),
                     ),
                   );
                 },
@@ -395,7 +373,6 @@ Widget _buildImageWidget(String imageUrl, {double? height}) {
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       children: [
-                        // Search Bar
                         Container(
                           decoration: BoxDecoration(
                             boxShadow: [
@@ -436,8 +413,6 @@ Widget _buildImageWidget(String imageUrl, {double? height}) {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        
-                        // Header
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -458,8 +433,6 @@ Widget _buildImageWidget(String imageUrl, {double? height}) {
                           ],
                         ),
                         const SizedBox(height: 16),
-                        
-                        // Products Grid
                         Expanded(
                           child: filteredProducts.isEmpty
                               ? Center(
@@ -506,7 +479,6 @@ Widget _buildImageWidget(String imageUrl, {double? height}) {
                                           child: Column(
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              // Product Image
                                               Expanded(
                                                 child: Container(
                                                   width: double.infinity,
@@ -521,8 +493,6 @@ Widget _buildImageWidget(String imageUrl, {double? height}) {
                                                 ),
                                               ),
                                               const SizedBox(height: 8),
-                                              
-                                              // Product Name
                                               Text(
                                                 product['name'],
                                                 style: const TextStyle(
@@ -533,8 +503,6 @@ Widget _buildImageWidget(String imageUrl, {double? height}) {
                                                 overflow: TextOverflow.ellipsis,
                                               ),
                                               const SizedBox(height: 4),
-                                              
-                                              // Product Price
                                               Text(
                                                 product['price_display'],
                                                 style: TextStyle(

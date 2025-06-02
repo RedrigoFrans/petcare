@@ -6,6 +6,8 @@ import '../Shop/shop.dart';
 import 'package:petcare1/Services/grooming.dart';
 import 'package:petcare1/Services/boarding.dart';
 import 'package:petcare1/Pets/add_pet.dart';
+import 'status.dart';
+
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -26,6 +28,8 @@ class _DashboardState extends State<Dashboard> {
       const HomeScreen(),
       const Shop(),
       const PetServices(),
+      const StatusPage(),
+
     ];
   }
 
@@ -43,6 +47,7 @@ class _DashboardState extends State<Dashboard> {
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
           BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: "Shop"),
           BottomNavigationBarItem(icon: Icon(Icons.design_services), label: "Services"),
+          BottomNavigationBarItem(icon: Icon(Icons.track_changes), label: "Status"),
         ],
       ),
     );

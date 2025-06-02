@@ -76,14 +76,6 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
           _handleLogout(showSnackbar: false, autoLogoutMessage: "Sesi Anda telah berakhir. Silakan login kembali.");
         } else {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Gagal memuat profil: ${response.message}'),
-                backgroundColor: Colors.red[600],
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-            );
           }
         }
       }
@@ -175,16 +167,16 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
         decoration: BoxDecoration(
-          color: Colors.blue[50],
+          color: Colors.green[50],
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.blue[100]!, width: 1),
+          border: Border.all(color: Colors.green[100]!, width: 1),
         ),
         child: Column(
           children: [
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.blue[600],
+                color: Colors.green[600],
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, size: 28, color: Colors.white),
@@ -195,7 +187,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: Colors.blue[700],
+                color: Colors.green[700],
               ),
             ),
           ],
@@ -225,7 +217,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                 Text('Fitur upload foto akan segera tersedia'),
               ],
             ),
-            backgroundColor: Colors.blue[600],
+            backgroundColor: Colors.green[600],
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
@@ -335,13 +327,13 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: (iconColor ?? Colors.blue[600])!.withOpacity(0.1),
+                  color: (iconColor ?? Colors.green[600])!.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   icon,
                   size: 24,
-                  color: iconColor ?? Colors.blue[600],
+                  color: iconColor ?? Colors.green[600],
                 ),
               ),
               const SizedBox(width: 16),
@@ -394,8 +386,8 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                 icon: Icon(icon, size: 18),
                 label: Text(text, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: backgroundColor ?? Colors.blue[700],
-                  side: BorderSide(color: backgroundColor ?? Colors.blue[700]!, width: 1.5),
+                  foregroundColor: backgroundColor ?? Colors.green[700],
+                  side: BorderSide(color: backgroundColor ?? Colors.green[700]!, width: 1.5),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
@@ -405,12 +397,12 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                 icon: Icon(icon, size: 18),
                 label: Text(text, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: backgroundColor ?? Colors.blue[700],
+                  backgroundColor: backgroundColor ?? Colors.green[700],
                   foregroundColor: foregroundColor ?? Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 3,
-                  shadowColor: backgroundColor?.withOpacity(0.3) ?? Colors.blue.withOpacity(0.3),
+                  shadowColor: backgroundColor?.withOpacity(0.3) ?? Colors.green.withOpacity(0.3),
                 ),
               ),
       ),
@@ -440,7 +432,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.blue[600]!),
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.green[600]!),
                 strokeWidth: 3,
               ),
               const SizedBox(height: 24),
@@ -464,7 +456,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
         backgroundColor: Colors.grey[50],
         appBar: AppBar(
           title: const Text('Profil Saya'),
-          backgroundColor: Colors.blue[600],
+          backgroundColor: Colors.green[600],
           foregroundColor: Colors.white,
           elevation: 0,
         ),
@@ -514,7 +506,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                         label: const Text('Coba Lagi'),
                         onPressed: _loadProfileData,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue[600],
+                          backgroundColor: Colors.green[600],
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -553,12 +545,13 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
           position: _slideAnimation,
           child: CustomScrollView(
             slivers: [
+              // Header dengan tinggi yang diperkecil untuk menghindari overlap
               SliverAppBar(
-                expandedHeight: 280,
+                expandedHeight: 50,
                 floating: false,
                 pinned: true,
                 elevation: 0,
-                backgroundColor: Colors.blue[700],
+                backgroundColor: Colors.green[700],
                 foregroundColor: Colors.white,
                 flexibleSpace: FlexibleSpaceBar(
                   background: Container(
@@ -567,29 +560,11 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
-                          Colors.blue[800]!,
-                          Colors.blue[600]!,
-                          Colors.teal[500]!,
+                          Colors.green[800]!,
+                          Colors.green[600]!,
+                          Colors.green[400]!,
                         ],
                       ),
-                    ),
-                    child: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.transparent,
-                                  Colors.black.withOpacity(0.1),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
                     ),
                   ),
                 ),
@@ -611,130 +586,128 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
               SliverToBoxAdapter(
                 child: Column(
                   children: [
-                    Transform.translate(
-                      offset: const Offset(0, -70),
-                      child: Column(
-                        children: [
-                          // Avatar Section
-                          Stack(
-                            alignment: Alignment.bottomRight,
-                            children: [
-                              Container(
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white, width: 6),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.15),
-                                      spreadRadius: 2,
-                                      blurRadius: 20,
-                                      offset: const Offset(0, 8),
-                                    ),
-                                  ],
-                                ),
-                                child: CircleAvatar(
-                                  radius: 70,
-                                  backgroundColor: Colors.grey[100],
-                                  backgroundImage: currentProfileImage,
-                                  child: (currentProfileImage == null && _customer != null && _customer!.name.isNotEmpty)
-                                      ? Text(
-                                          _customer!.name.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join().toUpperCase(),
-                                          style: TextStyle(
-                                            fontSize: 42,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.blue[700],
-                                          ),
-                                        )
-                                      : (currentProfileImage == null 
-                                          ? Icon(Icons.person_outline_rounded, size: 80, color: Colors.blue[300])
-                                          : null),
-                                ),
-                              ),
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.blue[600],
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white, width: 3),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.blue.withOpacity(0.3),
-                                      spreadRadius: 1,
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: IconButton(
-                                  icon: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 24),
-                                  onPressed: _pickImage,
-                                ),
+                    // Spacing yang diperbaiki untuk mencegah overlap
+                    const SizedBox(height: 40),
+                    
+                    // Avatar Section - Posisi diperbaiki
+                    Stack(
+                      alignment: Alignment.bottomRight,
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 6),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.15),
+                                spreadRadius: 2,
+                                blurRadius: 20,
+                                offset: const Offset(0, 8),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 20),
-                          
-                          // Name and Bio Section
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 24),
-                            child: Column(
-                              children: [
-                                Text(
-                                  displayName,
-                                  style: const TextStyle(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
-                                    height: 1.2,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                                if (displayBio.isNotEmpty) ...[
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    displayBio,
+                          child: CircleAvatar(
+                            radius: 70,
+                            backgroundColor: Colors.grey[100],
+                            backgroundImage: currentProfileImage,
+                            child: (currentProfileImage == null && _customer != null && _customer!.name.isNotEmpty)
+                                ? Text(
+                                    _customer!.name.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join().toUpperCase(),
                                     style: TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.grey[600],
-                                      height: 1.4,
+                                      fontSize: 42,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.green[700],
                                     ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ],
-                                if (displayAddress.isNotEmpty) ...[
-                                  const SizedBox(height: 12),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.blue[50],
-                                      borderRadius: BorderRadius.circular(20),
-                                      border: Border.all(color: Colors.blue[100]!),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(Icons.location_on_rounded, size: 18, color: Colors.blue[600]),
-                                        const SizedBox(width: 6),
-                                        Flexible(
-                                          child: Text(
-                                            displayAddress,
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              color: Colors.blue[700],
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
+                                  )
+                                : (currentProfileImage == null 
+                                    ? Icon(Icons.person_outline_rounded, size: 80, color: Colors.green[300])
+                                    : null),
                           ),
+                        ),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.green[600],
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 3),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.green.withOpacity(0.3),
+                                spreadRadius: 1,
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 24),
+                            onPressed: _pickImage,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    
+                    // Name and Bio Section
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Column(
+                        children: [
+                          Text(
+                            displayName,
+                            style: const TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                              height: 1.2,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          if (displayBio.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              displayBio,
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey[600],
+                                height: 1.4,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                          if (displayAddress.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.green[50],
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Colors.green[100]!),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.location_on_rounded, size: 18, color: Colors.green[600]),
+                                  const SizedBox(width: 6),
+                                  Flexible(
+                                    child: Text(
+                                      displayAddress,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.green[700],
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
+
+                    const SizedBox(height: 24),
 
                     // Action Buttons
                     Padding(
@@ -745,7 +718,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                             'Edit Profil',
                             Icons.edit_rounded,
                             _customer == null ? () {} : _navigateToEditProfile,
-                            backgroundColor: Colors.blue[700],
+                            backgroundColor: Colors.green[700],
                           ),
                           const SizedBox(width: 12),
                           _buildActionButton(
@@ -792,7 +765,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                               'Nama Lengkap',
                               displayName,
                               Icons.person_rounded,
-                              iconColor: Colors.blue[700],
+                              iconColor: Colors.green[700],
                             ),
                             _buildInfoCard(
                               'Email',

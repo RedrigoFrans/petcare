@@ -4,6 +4,7 @@ class Customer {
   final String email;
   final String phone;
   final String address;
+  final String? profileImageUrl;
 
   Customer({
     required this.id,
@@ -11,9 +12,9 @@ class Customer {
     required this.email,
     required this.phone,
     required this.address,
+    this.profileImageUrl,
   });
 
-  // Factory constructor untuk membuat Customer dari JSON
   factory Customer.fromJson(Map<String, dynamic> json) {
     return Customer(
       id: json['id'] ?? 0,
@@ -21,10 +22,10 @@ class Customer {
       email: json['email'] ?? '',
       phone: json['phone'] ?? '',
       address: json['address'] ?? '',
+      profileImageUrl: json['profileImageUrl'],
     );
   }
 
-  // Method untuk convert Customer ke JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -32,16 +33,17 @@ class Customer {
       'email': email,
       'phone': phone,
       'address': address,
+      'profileImageUrl': profileImageUrl,
     };
   }
 
-  // Method untuk membuat copy dengan perubahan tertentu
   Customer copyWith({
     int? id,
     String? name,
     String? email,
     String? phone,
     String? address,
+    String? profileImageUrl,
   }) {
     return Customer(
       id: id ?? this.id,
@@ -49,12 +51,13 @@ class Customer {
       email: email ?? this.email,
       phone: phone ?? this.phone,
       address: address ?? this.address,
+      profileImageUrl: profileImageUrl ?? this.profileImageUrl,
     );
   }
 
   @override
   String toString() {
-    return 'Customer{id: $id, name: $name, email: $email, phone: $phone, address: $address}';
+    return 'Customer{id: $id, name: $name, email: $email, phone: $phone, address: $address, profileImageUrl: $profileImageUrl}';
   }
 
   @override
@@ -65,7 +68,8 @@ class Customer {
         other.name == name &&
         other.email == email &&
         other.phone == phone &&
-        other.address == address;
+        other.address == address &&
+        other.profileImageUrl == profileImageUrl;
   }
 
   @override
@@ -74,6 +78,7 @@ class Customer {
         name.hashCode ^
         email.hashCode ^
         phone.hashCode ^
-        address.hashCode;
+        address.hashCode ^
+        (profileImageUrl?.hashCode ?? 0);
   }
 }

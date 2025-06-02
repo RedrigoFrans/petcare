@@ -98,30 +98,20 @@ class _LoginState extends State<Login> {
                     child: Column(
                       children: [
                         // Logo
-                        Container(
+                        SizedBox(
                           height: 170,
                           width: 170,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF4CAF50),
+                          child: ClipRRect(
                             borderRadius: BorderRadius.circular(85),
-                          ),
-                          child: const Icon(
-                            Icons.pets,
-                            size: 80,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        const Text(
-                          AppConstants.appName,
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Color(AppConstants.primaryColorValue),
+                            child: Image.asset(
+                              'assets/images/logo.png',
+                              fit: BoxFit.cover,
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 40),
 
+                        const SizedBox(height: 40),
+                        
                         // Form
                         Form(
                           key: _formKey,

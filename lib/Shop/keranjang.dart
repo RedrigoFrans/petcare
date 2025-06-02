@@ -1,27 +1,18 @@
+// keranjang.dart
 import 'package:flutter/material.dart';
 import 'checkout.dart';
+import 'package:provider/provider.dart'; // Import provider
+import 'package:petcare1/Shop/cart_provider.dart'; // Import CartProvider
+import 'package:cached_network_image/cached_network_image.dart'; // Import CachedNetworkImage
 
 class Cart extends StatefulWidget {
-  final List<Map<String, dynamic>> cartItems;
-  final Function(int index)? onItemRemoved; // Callback untuk item yang dihapus berdasarkan index
-  final Function(int index, int newQuantity)? onQuantityChanged; // Callback untuk perubahan quantity
-  final Function(List<Map<String, dynamic>>)? onCartChanged; // Callback untuk update seluruh cart
-
-  const Cart({
-    super.key, 
-    required this.cartItems, 
-    this.onItemRemoved, 
-    this.onQuantityChanged, 
-    this.onCartChanged
-  });
+  const Cart({super.key});
 
   @override
   State<Cart> createState() => _CartState();
 }
 
 class _CartState extends State<Cart> {
-  late List<Map<String, dynamic>> items;
-
   static const Color primaryGreen = Color(0xFF4CAF50);
   static const Color lightGreen = Color(0xFF81C784);
   static const Color darkGreen = Color(0xFF388E3C);
@@ -29,35 +20,13 @@ class _CartState extends State<Cart> {
   @override
   void initState() {
     super.initState();
-    items = widget.cartItems.map((originalCartItem) {
-      return {
-        'id': originalCartItem['id'] as int,
-        'name': originalCartItem['name'] as String? ?? 'Unknown Item',
-        'image': originalCartItem['image'] as String? ?? 'assets/images/placeholder.jpg',
-        'price_display': originalCartItem['price_display'] as String? ??
-                         (originalCartItem['price'] != null
-                             ? 'Rp. ${ (originalCartItem['price'] as double).toStringAsFixed(0) }'
-                             : 'Rp. 0'),
-        'price': (originalCartItem['price'] as num?)?.toDouble() ?? 0.0,
-        'quantity': (originalCartItem['quantity'] as num?)?.toInt() ?? 1,
-      };
-    }).toList();
-  }
-
-  // Method untuk update cart di parent (Shop)
-  void _updateParentCart() {
-    if (widget.onCartChanged != null) {
-      widget.onCartChanged!(List<Map<String, dynamic>>.from(items));
-    }
+    // Inisialisasi tidak diperlukan lagi karena data akan diambil dari Provider
   }
 
   void removeItem(int index) {
-    setState(() {
-      items.removeAt(index);
-    });
-
-    // Update parent cart
-    _updateParentCart();
+    // Dapatkan instance CartProvider
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    cartProvider.removeItem(index);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -76,29 +45,27 @@ class _CartState extends State<Cart> {
   }
 
   void increaseQuantity(int index) {
-    setState(() {
-      items[index]['quantity'] = ((items[index]['quantity'] as num?)?.toInt() ?? 1) + 1;
-    });
-    
-    // Update parent cart
-    _updateParentCart();
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    final currentItem = cartProvider.cartItems[index];
+    final int currentQty = (currentItem['quantity'] as num?)?.toInt() ?? 1;
+    cartProvider.updateQuantity(currentItem['id'], currentQty + 1);
   }
 
   void decreaseQuantity(int index) {
-    int currentQty = (items[index]['quantity'] as num?)?.toInt() ?? 1;
-    
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    final currentItem = cartProvider.cartItems[index];
+    final int currentQty = (currentItem['quantity'] as num?)?.toInt() ?? 1;
+
     if (currentQty > 1) {
-      setState(() {
-        items[index]['quantity'] = currentQty - 1;
-      });
-      
-      // Update parent cart
-      _updateParentCart();
+      cartProvider.updateQuantity(currentItem['id'], currentQty - 1);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Akses item keranjang dari CartProvider
+    final items = Provider.of<CartProvider>(context).cartItems;
+
     double totalPrice = items.fold(0.0, (sum, item) {
       double price = (item['price'] as num?)?.toDouble() ?? 0.0;
       int qty = (item['quantity'] as num?)?.toInt() ?? 1;
@@ -243,10 +210,21 @@ class _CartState extends State<Cart> {
                                 ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(12),
-                                  child: Image.network(
-                                    item['image']!,
+                                  child: CachedNetworkImage( // Menggunakan CachedNetworkImage
+                                    imageUrl: item['image']!,
                                     fit: BoxFit.cover,
-                                     errorBuilder: (context, error, stackTrace) {
+                                    placeholder: (context, url) => Container(
+                                      color: Colors.grey[100],
+                                      child: Center(
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor: AlwaysStoppedAnimation<Color>(
+                                            Colors.orange.shade300,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    errorWidget: (context, url, error) {
                                       return Image.asset('assets/images/placeholder.jpg', fit: BoxFit.cover);
                                     },
                                   ),
@@ -443,12 +421,7 @@ class _CartState extends State<Cart> {
                                         }).toList(),
                                         onConfirm: () {
                                           // Clear cart setelah checkout berhasil
-                                          setState(() {
-                                            items.clear();
-                                          });
-                                          
-                                          // Update parent cart (clear semua)
-                                          _updateParentCart();
+                                          Provider.of<CartProvider>(context, listen: false).clearCart();
                                           
                                           Navigator.popUntil(context, (route) => route.isFirst);
                                           ScaffoldMessenger.of(context).showSnackBar(

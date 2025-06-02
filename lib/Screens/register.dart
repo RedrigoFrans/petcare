@@ -161,22 +161,18 @@ class _RegisterState extends State<Register> {
                   children: [
                     // Logo dan Judul
                     // ✅ Gunakan placeholder jika tidak ada logo
-                    Container(
-                      height: 170,
-                      child: Icon(
-                        Icons.pets,
-                        size: 100,
-                        color: Colors.blue[600],
-                      ),
-                    ),
-                    Text(
-                      'Pet Care',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue[600],
-                      ),
-                    ),
+                        SizedBox(
+                          height: 170,
+                          width: 170,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(85),
+                            child: Image.asset(
+                              'assets/images/logo.png',
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+
                     const SizedBox(height: 30),
 
                     // Nama Lengkap

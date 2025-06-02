@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
-import 'Api/session_manager.dart'; // ✅ Impor SessionManager
-import 'Screens/splash1.dart';     // ✅ Layar splash awal jika belum login
-import 'Screens/dashboard.dart';  // ✅ Layar dashboard jika sudah login
-// Pastikan path impor sesuai dengan struktur proyek Anda
+import 'package:provider/provider.dart';
+import 'Api/session_manager.dart';
+import 'Screens/splash1.dart';
+import 'Screens/dashboard.dart';
+import 'package:petcare1/Shop/cart_provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized(); // Penting untuk operasi async sebelum runApp
-  runApp(const MyApp());
+  runApp(
+    // Bungkus seluruh aplikasi dengan ChangeNotifierProvider untuk CartProvider
+    ChangeNotifierProvider(
+      create: (context) => CartProvider(), // Buat instance CartProvider
+      child: const MyApp(), // Aplikasi utama Anda
+    ),
+  );
 }
 
 class MyApp extends StatefulWidget {
