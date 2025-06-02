@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:provider/provider.dart'; // Import provider package
 import 'Api/session_manager.dart';
 import 'Screens/splash1.dart';
 import 'Screens/dashboard.dart';
-import 'package:petcare1/Shop/cart_provider.dart';
+import 'Shop/cart_provider.dart'; // Import CartProvider Anda
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized(); // Penting untuk operasi async sebelum runApp
@@ -43,6 +43,15 @@ class _MyAppState extends State<MyApp> {
         _isLoggedIn = sudahLogin;
         _isLoading = false; // Selesai loading, siap tampilkan halaman
       });
+
+      // ✅ Tambahkan logika ini: Jika pengguna TIDAK login, bersihkan keranjang.
+      // Ini penting untuk memastikan keranjang kosong ketika aplikasi dimulai tanpa sesi login
+      // atau setelah pengguna logout dan aplikasi di-restart/dibuka kembali.
+      if (!_isLoggedIn) {
+        Provider.of<CartProvider>(context, listen: false).clearCart();
+        print("Pengguna tidak login, keranjang telah dibersihkan.");
+      }
+
       if (sudahLogin) {
         print("Pengguna sudah login, langsung ke Dashboard.");
       } else {
