@@ -34,24 +34,47 @@ class _StatusPageState extends State<StatusPage> {
         Uri.parse(apiUrl),
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
           // Tambahkan authorization header jika diperlukan
           // 'Authorization': 'Bearer $token',
         },
       );
 
+      print('Debug - Response status: ${response.statusCode}');
+      print('Debug - Response body: ${response.body}');
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        print('Debug - Decoded data: $data');
+        
+        List<Map<String, dynamic>> ordersList = [];
+        
+        // Cek struktur response
+        if (data is Map && data.containsKey('orders')) {
+          ordersList = List<Map<String, dynamic>>.from(data['orders']);
+        } else if (data is Map && data.containsKey('success') && data['success'] == true) {
+          ordersList = List<Map<String, dynamic>>.from(data['orders'] ?? []);
+        } else if (data is List) {
+          ordersList = List<Map<String, dynamic>>.from(data);
+        } else {
+          print('Debug - Unexpected data structure: ${data.runtimeType}');
+        }
+        
+        print('Debug - Orders list: $ordersList');
+        
         setState(() {
-          orders = List<Map<String, dynamic>>.from(data['orders'] ?? data);
+          orders = ordersList;
           isLoading = false;
         });
       } else {
+        print('Debug - HTTP Error: ${response.statusCode} - ${response.body}');
         setState(() {
-          errorMessage = 'Gagal memuat data pesanan';
+          errorMessage = 'Gagal memuat data pesanan (${response.statusCode})';
           isLoading = false;
         });
       }
     } catch (e) {
+      print('Debug - Exception: $e');
       setState(() {
         errorMessage = 'Terjadi kesalahan: $e';
         isLoading = false;
@@ -60,7 +83,14 @@ class _StatusPageState extends State<StatusPage> {
   }
 
   String getStatusText(String status) {
-    switch (status.toLowerCase()) {
+    // Debug: Print status untuk debugging
+    print('Debug - Raw status: "$status"');
+    print('Debug - Status after toLowerCase: "${status.toLowerCase()}"');
+    print('Debug - Status after trim: "${status.trim().toLowerCase()}"');
+    
+    String cleanStatus = status.trim().toLowerCase();
+    
+    switch (cleanStatus) {
       case 'pending':
         return 'Pesanan sedang pending';
       case 'paid':
@@ -72,14 +102,17 @@ class _StatusPageState extends State<StatusPage> {
       case 'completed':
         return 'Pesanan sudah selesai';
       case 'canceled':
+      case 'cancelled': // Untuk jaga-jaga ada perbedaan spelling
         return 'Pesanan dibatalkan';
       default:
-        return 'Status tidak diketahui';
+        print('Debug - Status tidak dikenali: "$cleanStatus"');
+        return 'Status tidak diketahui ($cleanStatus)'; // Tampilkan status asli untuk debugging
     }
   }
 
   Color getStatusColor(String status) {
-    switch (status.toLowerCase()) {
+    String cleanStatus = status.trim().toLowerCase();
+    switch (cleanStatus) {
       case 'pending':
         return Colors.orange;
       case 'paid':
@@ -91,6 +124,7 @@ class _StatusPageState extends State<StatusPage> {
       case 'completed':
         return Colors.green;
       case 'canceled':
+      case 'cancelled':
         return Colors.red;
       default:
         return Colors.grey;
@@ -98,7 +132,8 @@ class _StatusPageState extends State<StatusPage> {
   }
 
   IconData getStatusIcon(String status) {
-    switch (status.toLowerCase()) {
+    String cleanStatus = status.trim().toLowerCase();
+    switch (cleanStatus) {
       case 'pending':
         return Icons.schedule;
       case 'paid':
@@ -110,6 +145,7 @@ class _StatusPageState extends State<StatusPage> {
       case 'completed':
         return Icons.check_circle;
       case 'canceled':
+      case 'cancelled':
         return Icons.cancel;
       default:
         return Icons.help;
@@ -187,6 +223,10 @@ class _StatusPageState extends State<StatusPage> {
                         itemBuilder: (context, index) {
                           final order = orders[index];
                           final status = order['status'] ?? 'unknown';
+                          
+                          // Debug: Print order data
+                          print('Debug - Order $index: $order');
+                          print('Debug - Status for order ${order['id']}: "$status"');
                           
                           return Card(
                             margin: const EdgeInsets.only(bottom: 12),
