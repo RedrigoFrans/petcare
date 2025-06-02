@@ -119,9 +119,8 @@ class _BoardingState extends State<Boarding> {
         'owner_email': emailController.text.trim().isEmpty ? null : emailController.text.trim(),
         'start_date': DateFormat('yyyy-MM-dd').format(startDate!),
         'end_date': DateFormat('yyyy-MM-dd').format(endDate!),
-        'special_instructions': notesController.text.trim().isEmpty ? null : notesController.text.trim(),
+        'notes': notesController.text.trim().isEmpty ? null : notesController.text.trim(),
         'daily_rate': pricePerDay,
-        'services': [], // Empty array for now, can be extended later
       };
 
       // Call API
