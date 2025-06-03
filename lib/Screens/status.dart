@@ -83,11 +83,6 @@ class _StatusPageState extends State<StatusPage> {
   }
 
   String getStatusText(String status) {
-    // Debug: Print status untuk debugging
-    print('Debug - Raw status: "$status"');
-    print('Debug - Status after toLowerCase: "${status.toLowerCase()}"');
-    print('Debug - Status after trim: "${status.trim().toLowerCase()}"');
-    
     String cleanStatus = status.trim().toLowerCase();
     
     switch (cleanStatus) {
@@ -102,11 +97,10 @@ class _StatusPageState extends State<StatusPage> {
       case 'completed':
         return 'Pesanan sudah selesai';
       case 'canceled':
-      case 'cancelled': // Untuk jaga-jaga ada perbedaan spelling
+      case 'cancelled':
         return 'Pesanan dibatalkan';
       default:
-        print('Debug - Status tidak dikenali: "$cleanStatus"');
-        return 'Status tidak diketahui ($cleanStatus)'; // Tampilkan status asli untuk debugging
+        return 'Status tidak diketahui ($cleanStatus)';
     }
   }
 
@@ -224,9 +218,13 @@ class _StatusPageState extends State<StatusPage> {
                           final order = orders[index];
                           final status = order['status'] ?? 'unknown';
                           
-                          // Debug: Print order data
+                          // Ambil nama customer dari data yang sudah ter-join
+                          final customerName = order['customer_name'] ?? 'Unknown Customer';
+                          final customerEmail = order['customer_email'] ?? '';
+                          final customerPhone = order['customer_phone'] ?? order['phone'] ?? '';
+                          
                           print('Debug - Order $index: $order');
-                          print('Debug - Status for order ${order['id']}: "$status"');
+                          print('Debug - Customer name: $customerName');
                           
                           return Card(
                             margin: const EdgeInsets.only(bottom: 12),
@@ -295,6 +293,68 @@ class _StatusPageState extends State<StatusPage> {
                                   ),
                                   const SizedBox(height: 12),
                                   
+                                  // Informasi customer
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[50],
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: Colors.grey[200]!),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              Icons.person,
+                                              size: 16,
+                                              color: Colors.grey[600],
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              'Customer',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey[600],
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          customerName,
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        if (customerEmail.isNotEmpty) ...[
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            customerEmail,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey[600],
+                                            ),
+                                          ),
+                                        ],
+                                        if (customerPhone.isNotEmpty) ...[
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            customerPhone,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey[600],
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  
                                   // Informasi pesanan
                                   Row(
                                     children: [
@@ -303,25 +363,46 @@ class _StatusPageState extends State<StatusPage> {
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              'Nama: ${order['customer_name'] ?? 'N/A'}',
-                                              style: const TextStyle(fontSize: 14),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
                                               'Total: Rp ${_formatCurrency(order['total_amount'])}',
                                               style: const TextStyle(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w500,
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.green,
                                               ),
                                             ),
                                           ],
                                         ),
                                       ),
                                       if (order['payment_proof_path'] != null)
-                                        Icon(
-                                          Icons.receipt,
-                                          color: Colors.green[600],
-                                          size: 20,
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.green[50],
+                                            borderRadius: BorderRadius.circular(12),
+                                            border: Border.all(color: Colors.green[200]!),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                Icons.receipt,
+                                                color: Colors.green[600],
+                                                size: 16,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                'Bukti Bayar',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.green[600],
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                     ],
                                   ),
@@ -329,14 +410,27 @@ class _StatusPageState extends State<StatusPage> {
                                   // Alamat
                                   if (order['address'] != null) ...[
                                     const SizedBox(height: 8),
-                                    Text(
-                                      'Alamat: ${order['address']}',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey[600],
-                                      ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
+                                    Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Icon(
+                                          Icons.location_on,
+                                          size: 16,
+                                          color: Colors.grey[600],
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Expanded(
+                                          child: Text(
+                                            order['address'],
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey[600],
+                                            ),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ],
